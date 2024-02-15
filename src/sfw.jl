@@ -1,7 +1,7 @@
 module sfw
 
 
-using LinearAlgebra, PyPlot
+using LinearAlgebra, Plots
 using blasso,toolbox,certificate # own modules
 
 #####################################################################################

@@ -1,8 +1,6 @@
-
-
 module blasso
 
-using LinearAlgebra, PyPlot
+using LinearAlgebra, Plots, LaTeXStrings
 
 #####################################################################################
 
@@ -211,9 +209,8 @@ function plotobservation(op::operator;kwargs...)
     for i in 1:length(u)
         obser[i]=op.ob(u[i]);
     end
-    figure(figsize=(4,3));
     plot(u,obser)
-    show()
+
   elseif op.dim == 2
     u=range(op.bounds[1][1],stop=op.bounds[2][1],length=100);
     v=range(op.bounds[1][1],stop=op.bounds[2][2],length=100);
@@ -227,11 +224,8 @@ function plotobservation(op::operator;kwargs...)
         Ob[j,i]=op.ob([u[i],v[j]]); #i column -> x axis
       end
     end
+	cs=heatmap(u,v)
 
-    cm=ColorMap("coolwarm");
-    cs=contourf(u,v,Ob,200,cmap=cm,interpolation="bicubic",linestyles="None")
-    cb = colorbar(cs)
-    show()
   elseif op.dim == 3
     key_kw=[kwargs[i][1] for i in 1:length(kwargs)];
     if :ngrid in key_kw
@@ -276,8 +270,7 @@ function plotobservation(op::operator;kwargs...)
     end
 
     cm=ColorMap("coolwarm");
-    cs=contourf(u,v,Ob,50,cmap=cm,interpolation="bicubic",linestyles="None")
-    cb = colorbar(cs)
+    cs=heatmap(u,v)
     if :clim in key_kw
       clim=kwargs[find(key_kw.==:clim)][1][2];
       cs[:set_clim](clim[1], clim[2])
@@ -299,23 +292,8 @@ function plotobservation(u::Array{Float64,1},op::operator;kwargs...)
     plot(u,obser)
     show()
   elseif op.dim == 2
-    u=range(op.bounds[1][1],stop=op.bounds[2][1],length=100);
-    v=range(op.bounds[1][1],stop=op.bounds[2][2],length=100);
-    U=Array{Float64}(undef,0);
-    V=Array{Float64}(undef,0);
-    Ob=zeros(length(u),length(v));
-    for i in 1:length(u)
-      for j in 1:length(v)
-        append!(U,u[i]);
-        append!(V,v[j]);
-        Ob[j,i]=correl([u[i],v[j]]); #i column -> x axis
-      end
-    end
+    :cn
 
-    cm=ColorMap("coolwarm");
-    cs=contourf(u,v,Ob,200,cmap=cm,interpolation="bicubic",linestyles="None")
-    cb = colorbar(cs)
-    show()
   elseif op.dim == 3
     key_kw=[kwargs[i][1] for i in 1:length(kwargs)];
     if :ngrid in key_kw
@@ -923,7 +901,7 @@ function plotSpikes(u::Array{Float64,1})
       posBarU[i,:]=x[i]*ones(number_points);
   end
 
-  figure(figsize=(4,3))
+  
   for i in 1:N
       plot(reshape(posBarU[i,:],number_points),reshape(barU[i,:],number_points),"--",color="red",linewidth=2.);
       plot(x,a,".",color="red",markersize=10.);
@@ -931,6 +909,7 @@ function plotSpikes(u::Array{Float64,1})
   axis([0.0,x[N]+1.0,0.0,maximum(a)+.2]);
   show()
 end
+
 function plotSpikes(u0::Array{Float64,1},u::Array{Float64,1},op::operator;save::Bool=false,show_obser=false,show_obser_est=false,titl::String="")
   N0=convert(Integer,length(u0)/2);
   N=convert(Integer,length(u)/2);
@@ -954,15 +933,11 @@ function plotSpikes(u0::Array{Float64,1},u::Array{Float64,1},op::operator;save::
     posBarU[i,:]=u[i+N]*ones(number_points);
   end
 
-  #if display==false
-  #  ioff()
-  #end
-  figure(figsize=(4,3))
   for i in 1:N0
-    plot(reshape(posBarU0[i,:],number_points),s0[i]*reshape(barU0[i,:],number_points),"--",color="black",linewidth=1.);
+    plot(reshape(posBarU0[i,:],number_points),s0[i]*reshape(barU0[i,:],number_points));
   end
   for i in 1:N
-    plot(reshape(posBarU[i,:],number_points),s[i]*reshape(barU[i,:],number_points),"--",color="red",linewidth=1.);
+    plot(reshape(posBarU[i,:],number_points),s[i]*reshape(barU[i,:],number_points));
   end
   plot(u0[N0+1:2N0],u0[1:N0],".",color="black",markersize=7.,label=L"$m_{a_0,x_0}$");
   plot(u[N+1:2N],u[1:N],".",color="red",markersize=7.,label=L"$m_{a,x}$");

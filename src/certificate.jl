@@ -1,6 +1,6 @@
 module certificate
 
-using LinearAlgebra, PyPlot
+using LinearAlgebra, Plots, LaTeXStrings
 using blasso,toolbox
 
 include("certificate_plots.jl");
