@@ -1,10 +1,5 @@
-# sfw4blasso
-Sliding Frank-Wolfe Algorithm for BLASSO
+# What is this
+This is an adaptation of the sfwblasso code of quentin denoyelle for the super-resolution of blurred lines.
 
-Algorithm that solves the BLASSO using the Sliding Frank-Wolfe (SFW) algorithm. It is based on the Frank-Wolfe algorithm but with
-an added step, after each creation of a new spike, that moves continuously both the amplitudes and the positions.
-
-The notebook example.ipynb gives a few examples.
-
-Works with Julia 1.0.0
-
+# Original code
+https://github.com/qdenoyelle/sfw4blasso/tree/master
