@@ -21,6 +21,7 @@ function setKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Float64,Dpy::F
 
   dim=2;
   a,b=bounds[1],bounds[2];
+  # Sampling of the Kernel
   Npx,Npy=length(px),length(py);
   p=Array{Array{Float64,1}}(undef,0);
   for pyi in py
@@ -29,6 +30,7 @@ function setKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Float64,Dpy::F
     end
   end
 
+  # Sampling of the parameter space X
   coeff=.2;
   lSample=[coeff/sigmax,coeff/sigmay];
   nbpointsgrid=[convert(Int64,round(5*lSample[i]*abs(b[i]-a[i]);digits=0)) for i in 1:dim];
