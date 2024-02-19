@@ -62,6 +62,8 @@ function computeEtaV(x0::Array{Float64,1},s::Array{Float64,1},op::blasso.operato
 end
 
 # etaV is the phi* of the unique solution pv def in (11) of the paper
+# x0 is the original spikes locations
+# s is the sign of the amplitudes
 function computeEtaV(x0::Array{Array{Float64,1},1},s::Array{Float64,1},op::blasso.operator)
     N=length(x0);
     G=zeros(N*(1+op.dim),N*(1+op.dim));
@@ -87,6 +89,7 @@ function computeEtaV(x0::Array{Array{Float64,1},1},s::Array{Float64,1},op::blass
     a=G\delta;
 
     v=sum([a[i]*op.phi(x0[i]) for i in 1:N]) + sum([sum([a[i+k*N]*op.d1phi(k,x0[i]) for i in 1:N]) for k in 1:op.dim]);
+	print(length(v))
 
     function etaV(x::Array{Float64,1})
         return dot(op.phi(x),v);

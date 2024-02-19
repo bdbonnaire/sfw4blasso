@@ -16,7 +16,10 @@ end;
 	push!(LOAD_PATH,"./src/");
 
 # ╔═╡ bb6f403c-0897-4903-be58-8cd320f83d17
+begin
+	using Revise
 	using blasso, sfw, certificate, toolbox
+end
 
 # ╔═╡ 5dcf6210-5e2d-4c74-854e-5617749d8b8c
 md"# Gaussian 1D Kernel"
@@ -131,7 +134,7 @@ end
 # ╔═╡ Cell order:
 # ╟─c13a86de-cb38-11ee-3890-c93e2ad0f39a
 # ╟─9e13dfd5-078d-49bb-827e-97575a6a42df
-# ╟─bb6f403c-0897-4903-be58-8cd320f83d17
+# ╠═bb6f403c-0897-4903-be58-8cd320f83d17
 # ╟─5dcf6210-5e2d-4c74-854e-5617749d8b8c
 # ╠═21f334a4-ef50-4e84-82c6-1d75a485d6b5
 # ╠═b4aea33e-6012-44b5-90ee-960e476382bd

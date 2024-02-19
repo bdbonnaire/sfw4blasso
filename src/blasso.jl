@@ -220,7 +220,7 @@ function plotobservation(op::operator;kwargs...)
         Ob[j,i]=op.ob([u[i],v[j]]); #i column -> x axis
       end
     end
-	cs=heatmap(u,v,Ob)
+	heatmap(u,v,Ob)
 
   elseif op.dim == 3
     key_kw=[kwargs[i][1] for i in 1:length(kwargs)];
