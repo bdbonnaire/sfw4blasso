@@ -244,7 +244,7 @@ function checkConvergence(max_etaL::Float64,r::sfw_result,o::sfw_options)
     update_result!(r,blasso_converged=true);
     deleteat!(r.newPos,length(r.newPos));
     cv=true;
-  elseif max_etaL<=1-2*1e-2
+  elseif max_etaL<=1-O.eta_tol
     if o.show_success
       println("\nFAILED! (max(etaL)<1)");
     end
