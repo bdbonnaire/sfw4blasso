@@ -5,6 +5,8 @@ using blasso,toolbox
 
 include("certificate_plots.jl");
 
+# etaL is defined in Def.10 of the paper
+# function from X to R
 function computeEtaL(u::Array{Float64,1},op::blasso.operator,lambda::Float64)
     Phiu=blasso.computePhiu(u,op);
     etaL(x::Array{Float64,1})=-1/lambda*op.correl(x,Phiu);
@@ -59,6 +61,7 @@ function computeEtaV(x0::Array{Float64,1},s::Array{Float64,1},op::blasso.operato
     return etaV
 end
 
+# etaV is the phi* of the unique solution pv def in (11) of the paper
 function computeEtaV(x0::Array{Array{Float64,1},1},s::Array{Float64,1},op::blasso.operator)
     N=length(x0);
     G=zeros(N*(1+op.dim),N*(1+op.dim));
