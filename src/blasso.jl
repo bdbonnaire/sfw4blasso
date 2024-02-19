@@ -214,17 +214,13 @@ function plotobservation(op::operator;kwargs...)
   elseif op.dim == 2
     u=range(op.bounds[1][1],stop=op.bounds[2][1],length=100);
     v=range(op.bounds[1][1],stop=op.bounds[2][2],length=100);
-    U=Array{Float64}(undef,0);
-    V=Array{Float64}(undef,0);
     Ob=zeros(length(u),length(v));
     for i in 1:length(u)
       for j in 1:length(v)
-        append!(U,u[i]);
-        append!(V,v[j]);
         Ob[j,i]=op.ob([u[i],v[j]]); #i column -> x axis
       end
     end
-	cs=heatmap(u,v)
+	cs=heatmap(u,v,Ob)
 
   elseif op.dim == 3
     key_kw=[kwargs[i][1] for i in 1:length(kwargs)];
