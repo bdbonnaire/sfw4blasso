@@ -1,6 +1,6 @@
 module blasso
 
-using LinearAlgebra, Plots, LaTeXStrings
+using LinearAlgebra, SpecialFunctions, Plots, LaTeXStrings
 
 #####################################################################################
 
