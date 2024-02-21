@@ -114,11 +114,15 @@ end
 
 function update_result!(r::sfw_result;kwargs...)
   for i in 1:length(kwargs)
-    (pair,j)=iterate(kwargs,i);
+    (pair,j)=iterate(kwargs,i); 
+	# initiates an iterator over the kwargs. why not but useless. Could have just used
+	# for pair in kwargs
+	# since the j is not used
     if !( pair[1] in [:f,:f_previous,:u,:u_previous,:g,:g_previous,:blasso_converged] )
       if length(getfield(r,pair[1]))==0
         setfield!(r,pair[1],[pair[2]]);
       elseif pair[1] in [:f,:f_previous]
+		  # What is this if about !? We tested previously if pair[1] was not :f or :f_previous !!
         copy!(getfield(r,pair[1]),pair[2]);
       else
         append!(getfield(r,pair[1]),[pair[2]]);
@@ -164,11 +168,23 @@ function sfw4blasso(fobj::blasso.fobj,kernel::blasso.kernel,op::blasso.operator,
   result=init_result(op);
   # STORE initial energy and gradient.
   if o.keep_trace
-    update_result!(result;f_list=fobj.f(result.u),f_mainIter=fobj.f(result.u),g_mainIter=fobj.g(result.u),g_list=fobj.g(result.u),normG=norm(fobj.g(result.u)),f_bfgs=fobj.f(result.u),g_bfgs=fobj.g(result.u));
+    update_result!(result;
+				   	f_list=fobj.f(result.u),
+					f_mainIter=fobj.f(result.u),
+					g_mainIter=fobj.g(result.u),
+					g_list=fobj.g(result.u),
+					normG=norm(fobj.g(result.u)),
+					f_bfgs=fobj.f(result.u),
+					g_bfgs=fobj.g(result.u)
+					);
   else
-    update_result!(result;f_mainIter=fobj.f(result.u),g_mainIter=fobj.g(result.u),f_bfgs=fobj.f(result.u),g_bfgs=fobj.g(result.u));
+    update_result!(result;
+				   f_mainIter=fobj.f(result.u),
+				   g_mainIter=fobj.g(result.u),
+				   f_bfgs=fobj.f(result.u),
+				   g_bfgs=fobj.g(result.u)
+				   );
   end
-  #
 
   for i in 1:o.max_mainIter
     ## - Compute the Next Position - ##
