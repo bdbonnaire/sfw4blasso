@@ -62,23 +62,23 @@ end
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=.5;
+	lambda=0.001;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
 
 # ╔═╡ 67884e0d-db4a-4a6a-ace9-ec88efe65d14
-begin
-	etaV = certificate.computeEtaV(x0, sign.(a0), op)
-	#tt = collect(range(-1,1, 500))
-	#plot(tt, etaV(tt))
-end
+#begin
+#	etaV = certificate.computeEtaV(x0, sign.(a0), op)
+#	#tt = collect(range(-1,1, 500))
+#	#plot(tt, etaV(tt))
+#end
 
 # ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
-sfw.show_result(result, options)
+#sfw.show_result(result, options)
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
 function plotSpikes(x0,a0,result)
