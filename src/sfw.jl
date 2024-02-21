@@ -1272,7 +1272,7 @@ function computeNewAmplitudes(r::sfw_result,op::blasso.operator,lambda::Real,tol
     x=Array{Array{Float64,1}}(undef,1);
   end
 
-  newPos=r.newPos[end][1];
+  newPos=r.newPos[end]; # modif : newPos=r.newPos[end][1];
   sameNewPos=false;
   I=1;
 
@@ -1297,8 +1297,7 @@ function computeNewAmplitudes(r::sfw_result,op::blasso.operator,lambda::Real,tol
     end
   else
     a,X=blasso.decompAmpPos(r.u,d=op.dim);
-
-    xt=[X[i]-newPos for i in 1:N];
+    xt=[X[i].-newPos for i in 1:N]; # modif: .- instead of -
     for i in 1:N
       if norm(xt[i])<1e-6
         I=i;
