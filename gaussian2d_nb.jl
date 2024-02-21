@@ -62,7 +62,7 @@ end
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=.5;
+	lambda=0.001;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
