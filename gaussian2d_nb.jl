@@ -29,7 +29,7 @@ md"# Gaussian 2D Kernel"
 # ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
 begin
 	# Model constants
-	sigmax=.01;
+	sigmax=.1;
 	sigmay=.1;
 	Dpx=.05;
 	Dpy=.05;
@@ -53,8 +53,8 @@ begin
 	x0=[[.7,.7], [.2, .3]];
 	# Noise
 	#srand(1);
-	w0=zeros(N);#randn(N);
-	sigma=.01;
+	w0=randn(N);
+	sigma=.003;
 	# Load operator Phi
 	op=blasso.setoperator(kernel,a0,x0,sigma*w0);
 	#blasso.plotobservation(op)
@@ -62,7 +62,7 @@ end
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=0.001;
+	lambda=0.005;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
