@@ -98,7 +98,7 @@ function setoperator(kernel::gaussian2D,a0::Array{Float64,1},x0::Array{Array{Flo
   end
 
   function phix(x::Float64)
-    phipx=zeros(kernel.Npx);
+    phipx=zeros(kernel.Npx);<
     for i in 1:kernel.Npx
       phipx[i]=phiDx(x,kernel.px[i]);
     end
