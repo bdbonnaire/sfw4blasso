@@ -101,11 +101,12 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 
   function phiVect(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
-    l=1;
-	η = x[1]
-	θ = x[2]
-	c = tan(θ)
-	σ = kernel.σ
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
 	
     for j in 1:kernel.Npω
       for i in 1:kernel.Npt
@@ -195,6 +196,8 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
   c(x1::Array{Float64,1},x2::Array{Float64,1})=dot(phiVect(x1),phiVect(x2));
+  println("type of c is $(typeof(c))")
+
   function d10c(i::Int64,x1::Array{Float64,1},x2::Array{Float64,1})
     return dot(d1phiVect(i,x1),phiVect(x2));
   end
@@ -295,8 +298,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return(d2c)
   end
 
-  println(typeof(phiVect))
-  println(typeof(d1phiVect))
+  println("type of c is $(typeof(c))")
   operator_spec_lchirp(typeof(kernel),kernel.dim,kernel.σ,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
 end
 
