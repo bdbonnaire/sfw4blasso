@@ -285,22 +285,12 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   normObs=.5*norm(y)^2;
 
 
-  # PhisY=zeros(prod([length(kernel.grid[i]) for i in 1:2]));
-  # l=1;
-  # for i in 1:length(kernel.grid[1])
-  #   for j in 1:length(kernel.grid[2])
-  #     v=zeros(kernel.Npt*kernel.Npω);
-  #     lp=1;
-  #     for jp in 1:kernel.Npω
-  #       for ip in 1:kernel.Npt
-  #         v[lp]=Phix[i][ip]*Phiy[j][jp];
-  #         lp+=1;
-  #       end
-  #     end
-  #     PhisY[l]=dot(v,y);
-  #     l+=1;
-  #   end
-  # end
+  PhisY=zeros(prod([length(kernel.grid[i]) for i in 1:2]));
+  l=1;
+  for pg in grid
+	  PhisY[l]=ob(pg);
+	  l +=1;
+  end
 
   function ob(x::Array{Float64,1},y::Array{Float64,1}=y)
     return dot(phiVect(x),y);
@@ -325,7 +315,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
   function d2correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
     d2c=zeros(kernel.dim,kernel.dim);
-	d2c[1,2]=dot(d11phiVect(x),sum(Phiu)-y);
+	d2c[1,2]=dot(d11phiVect(x),
 	d2c=d2c+d2c';
     d2c[1,1]=dot(d2phiVect(1,x),sum(Phiu)-y);
 	d2c[2,2]=dot(d2phiVect(2,x),sum(Phiu)-y);
@@ -346,26 +336,23 @@ end
 # Compute the argmin and min of the correl on the grid.
 function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
   correl_min,argmin=Inf,zeros(op.dim);
-  l=1;
-  for i in 1:length(kernel.grid[1])
-    for j in 1:length(kernel.grid[2])
-      a=[dot(op.Phix[i],Phiu[1][k]) for k in 1:length(Phiu[1])];
-      b=[dot(op.Phiy[j],Phiu[2][k]) for k in 1:length(Phiu[2])];
-      buffer=dot(a,b)-op.PhisY[l];
+  for pg in p
+	  buffer = correl(pg, Phiu)
       if !positivity
         buffer=-abs(buffer);
       end
       if buffer<correl_min
         correl_min=buffer;
-        argmin=[kernel.grid[1][i],kernel.grid[2][j]];
+        argmin=pg;
       end
-      l+=1;
-    end
   end
 
   return argmin,correl_min
 end
 
+"""
+Sets the amplitude bounds 
+"""
 function setbounds(op::blasso.operator_spec_lchirp,positivity::Bool=true,ampbounds::Bool=true)
   x_low=op.bounds[1];
   x_up=op.bounds[2];
