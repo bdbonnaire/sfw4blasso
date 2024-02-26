@@ -315,7 +315,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
   function d2correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
     d2c=zeros(kernel.dim,kernel.dim);
-	d2c[1,2]=dot(d11phiVect(x),
+	d2c[1,2]=dot(d11phiVect(x),sum(Phiu)-y);
 	d2c=d2c+d2c';
     d2c[1,1]=dot(d2phiVect(1,x),sum(Phiu)-y);
 	d2c[2,2]=dot(d2phiVect(2,x),sum(Phiu)-y);
