@@ -315,33 +315,20 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return dot(d2phiVect(k,x),y);
   end
 
-  function correl(x::Array{Float64,1},Phiu::Array{Array{Array{Float64,1},1},1})
-    a=[dot(phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    b=[dot(phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    return dot(a,b)-ob(x);
+  function correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
+	  return dot(phi(x),sum(Phiu)-y);
   end
-  function d1correl(x::Array{Float64,1},Phiu::Array{Array{Array{Float64,1},1},1})
-    d1c=zeros(kernel.dim);
-    a=[dot(phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    b=[dot(phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    da=[dot(d1phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    db=[dot(d1phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    d1c[1]=dot(da,b)-d1ob(1,x);
-    d1c[2]=dot(a,db)-d1ob(2,x);
-    return d1c
+  function d1correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
+	  d11 = dot(d1phiVect(1,x),sum(Phiu)-y);
+	  d12 = dot(d1phiVect(2,x),sum(Phiu)-y);
+	  return [d11,d12];
   end
-  function d2correl(x::Array{Float64,1},Phiu::Array{Array{Array{Float64,1},1},1})
+  function d2correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
     d2c=zeros(kernel.dim,kernel.dim);
-    a=[dot(phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    b=[dot(phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    da=[dot(d1phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    db=[dot(d1phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    dda=[dot(d2phix(x[1]),Phiu[1][i]) for i in 1:length(Phiu[1])];
-    ddb=[dot(d2phiy(x[2]),Phiu[2][i]) for i in 1:length(Phiu[2])];
-    d2c[1,2]=dot(da,db)-dot(d11phiVect(1,2,x),y);
-    d2c=d2c+d2c';
-    d2c[1,1]=dot(dda,b)-d2ob(1,x);
-    d2c[2,2]=dot(a,ddb)-d2ob(2,x);
+	d2c[1,2]=dot(d11phiVect(x),sum(Phiu)-y);
+	d2c=d2c+d2c';
+    d2c[1,1]=dot(d2phiVect(1,x),sum(Phiu)-y);
+	d2c[2,2]=dot(d2phiVect(2,x),sum(Phiu)-y);
     return(d2c)
   end
 
@@ -350,13 +337,14 @@ end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
   a,X=blasso.decompAmpPos(u,d=op.dim);
-  Phiux=[a[i]*op.phix(X[i][1]) for i in 1:length(a)];
-  Phiuy=[op.phiy(X[i][2]) for i in 1:length(a)];
+  Phiu = [a[i]*op.phi(X[i][1]) for i in 1:length(a)];
+  # Phiux=[a[i]*op.phix(X[i][1]) for i in 1:length(a)];
+  # Phiuy=[op.phiy(X[i][2]) for i in 1:length(a)];
   return [Phiux,Phiuy];
 end
 
 # Compute the argmin and min of the correl on the grid.
-function minCorrelOnGrid(Phiu::Array{Array{Array{Float64,1},1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
+function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
   correl_min,argmin=Inf,zeros(op.dim);
   l=1;
   for i in 1:length(kernel.grid[1])
