@@ -111,10 +111,10 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local c = tan(θ)
 	local σ = kernel.σ
 	
-    for j in 1:kernel.Npω
-      for i in 1:kernel.Npt
-		  ω=kernel.pω[j]
-		  t=kernel.pt[i]
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		  ω=kernel.pω[i]
+		  t=kernel.pt[j]
 		  v[l]= σ * (1 + σ ^ 4 * c ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
         l+=1;
       end
@@ -131,10 +131,10 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local c = tan(θ)
 	local σ = kernel.σ
 	
-    for j in 1:kernel.Npω
-      for i in 1:kernel.Npt
-		ω=kernel.pω[j]
-		t=kernel.pt[i]
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		ω=kernel.pω[i]
+		t=kernel.pt[j]
 		v[l]=  4 * σ ^ 3 * (1 + σ ^ 4 * c ^ 2) ^ (-3//2) * pi * (ω - η - c * t) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
 		l+=1;
       end
@@ -151,10 +151,10 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local c = tan(θ)
 	local σ = kernel.σ
 	
-    for j in 1:kernel.Npω
-      for i in 1:kernel.Npt
-		ω=kernel.pω[j]
-		t=kernel.pt[i]
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		ω=kernel.pω[i]
+		t=kernel.pt[j]
 		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
 		l+=1;
       end
@@ -172,10 +172,10 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local c = tan(θ)
 	local σ = kernel.σ
 	
-    for j in 1:kernel.Npω
-      for i in 1:kernel.Npt
-		ω=kernel.pω[j]
-		t=kernel.pt[i]
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		ω=kernel.pω[i]
+		t=kernel.pt[j]
 		v[l] = 4 * (1 + c ^ 2) * pi * σ ^ 3 * (2 * c ^ 4 * σ ^ 8 * t - 4 * (η - ω) * σ ^ 6 * (pi * t ^ 2 - 3//4 * σ ^ 2) * c ^ 3 + 4 * (-2 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * σ ^ 2 * t * c ^ 2 + 8 * (η - ω) * σ ^ 2 * (-pi * (η - ω) ^ 2 * σ ^ 4 / 2 + 3//8 * σ ^ 2 + pi * t ^ 2) * c + 4 * (-1//4 + pi * (η - ω) ^ 2 * σ ^ 2) * t) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-7//2)
 		l+=1;
       end
@@ -195,34 +195,51 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   function d11phiVect(i::Int64,j::Int64,x::Array{Float64,1})
 	  return d11φ(x);
   end
+
+  function d2φη(x::array{Float64,1})
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
+	
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		ω=kernel.pω[i]
+		t=kernel.pt[j]
+		v[l] = 4 * pi * σ ^ 3 * ((4 * pi * σ ^ 2 * t ^ 2 - σ ^ 4) * c ^ 2 + 8 * t * pi * σ ^ 2 * (η - ω) * c - 1 + 4 * pi * (η - ω) ^ 2 * σ ^ 2) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+		l+=1;
+      end
+    end
+    return v;
+  end
+
+  function d2φθ(x::array{Float64,1})
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
+	
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		ω=kernel.pω[i]
+		t=kernel.pt[j]
+		v[l] =16 * (cos(θ) * sin(θ) ^ 6 * σ ^ 14 / 8 - pi * σ ^ 12 * t * (cos(θ) ^ 2 + 1) * (η - ω) * sin(θ) ^ 5 / 2 + ((-3//4 - pi * (η - ω) ^ 2 * σ ^ 6 + 3//4 * σ ^ 4 + pi * σ ^ 2 * t ^ 2) * cos(θ) ^ 2 / 2 + σ ^ 2 * (-3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 + 3//4 * pi * t ^ 2)) * cos(θ) * σ ^ 6 * sin(θ) ^ 4 - 2 * pi * (η - ω) * cos(θ) ^ 2 * σ ^ 6 * (σ ^ 2 * cos(θ) ^ 2 / 4 - pi * (η - ω) ^ 2 * σ ^ 4 - 3//4 * σ ^ 2 + pi * t ^ 2) * t * sin(θ) ^ 3 + pi * ((-(η - ω) ^ 2 * σ ^ 6 + t ^ 2 * σ ^ 2) * cos(θ) ^ 2 + pi * ((η - ω) ^ 4 * σ ^ 8 - 4 * t ^ 2 * (η - ω) ^ 2 * σ ^ 4 + t ^ 4)) * cos(θ) ^ 3 * σ ^ 2 * sin(θ) ^ 2 + 2 * pi * (η - ω) * cos(θ) ^ 4 * ((σ ^ 4 - 1) * cos(θ) ^ 2 / 4 + (-pi * (η - ω) ^ 2 * σ ^ 4 + 3//4 * σ ^ 2 + pi * t ^ 2) * σ ^ 2) * t * sin(θ) + ((-pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * cos(θ) ^ 2 / 2 + 3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 - 3//4 * pi * t ^ 2) * cos(θ) ^ 5) * σ ^ 3 * 0.1e1 / cos(θ) ^ 9 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-9//2) 
+		l+=1;
+      end
+    end
+    return v;
+
   function d2phiVect(m::Int64,x::Array{Float64,1})
-    #
-    phipt=phix(x[1]);
-    phipω=phiy(x[2]);
-    #
-    d2phipt=d2phix(x[1]);
-    d2phipω=d2phiy(x[2]);
-    #
     if m==1
-      v=zeros(kernel.Npt*kernel.Npω);
-      l=1;
-      for j in 1:kernel.Npω
-        for i in 1:kernel.Npt
-          v[l]=d2phipt[i]*phipω[j];
-          l+=1;
-        end
-      end
-      return v;
+		return d2φη(x);
     else
-      v=zeros(kernel.Npt*kernel.Npω);
-      l=1;
-      for j in 1:kernel.Npω
-        for i in 1:kernel.Npt
-          v[l]=phipt[i]*d2phipω[j];
-          l+=1;
-        end
-      end
-      return v;
+		return d2φθ(x);
     end
   end
 
