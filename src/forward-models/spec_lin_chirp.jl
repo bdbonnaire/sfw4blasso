@@ -99,6 +99,9 @@ end
 # Functions that set the operator for the gaussian convolution in 2D when the initial measure is given
 function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
 
+	"""phiVect(x)
+	Given the parameters (η, θ), computes the associated spectrogram line
+	"""
   function phiVect(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
@@ -110,8 +113,8 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	
     for j in 1:kernel.Npω
       for i in 1:kernel.Npt
-		  ω=kernel.pt[i]
-		  t=kernel.pω[j]
+		  ω=kernel.pω[j]
+		  t=kernel.pt[i]
 		  v[l]= σ * (1 + σ ^ 4 * c ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
         l+=1;
       end
@@ -119,6 +122,66 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return v;
   end
 
+  function d1φη(x::array{Float64,1})
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
+	
+    for j in 1:kernel.Npω
+      for i in 1:kernel.Npt
+		ω=kernel.pω[j]
+		t=kernel.pt[i]
+		v[l]=  4 * σ ^ 3 * (1 + σ ^ 4 * c ^ 2) ^ (-3//2) * pi * (ω - η - c * t) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
+		l+=1;
+      end
+    end
+    return v;
+  end
+
+  function d1φθ(x::array{Float64,1})
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
+	
+    for j in 1:kernel.Npω
+      for i in 1:kernel.Npt
+		ω=kernel.pω[j]
+		t=kernel.pt[i]
+		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+		l+=1;
+      end
+    end
+    return v;
+  end
+
+
+  function d11φ(x::array{Float64,1})
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local c = tan(θ)
+	local σ = kernel.σ
+	
+    for j in 1:kernel.Npω
+      for i in 1:kernel.Npt
+		ω=kernel.pω[j]
+		t=kernel.pt[i]
+		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+		l+=1;
+      end
+    end
+    return v;
+  end
   function d1phiVect(m::Int64,x::Array{Float64,1})
     #
     phipt=phix(x[1]);
