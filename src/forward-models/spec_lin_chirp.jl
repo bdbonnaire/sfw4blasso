@@ -122,7 +122,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return v;
   end
 
-  function d1φη(x::array{Float64,1})
+  function d1φη(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
@@ -142,7 +142,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return v;
   end
 
-  function d1φθ(x::array{Float64,1})
+  function d1φθ(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
@@ -163,7 +163,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
 
-  function d11φ(x::array{Float64,1})
+  function d11φ(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
@@ -176,56 +176,24 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
       for i in 1:kernel.Npt
 		ω=kernel.pω[j]
 		t=kernel.pt[i]
-		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+		v[l] = 4 * (1 + c ^ 2) * pi * σ ^ 3 * (2 * c ^ 4 * σ ^ 8 * t - 4 * (η - ω) * σ ^ 6 * (pi * t ^ 2 - 3//4 * σ ^ 2) * c ^ 3 + 4 * (-2 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * σ ^ 2 * t * c ^ 2 + 8 * (η - ω) * σ ^ 2 * (-pi * (η - ω) ^ 2 * σ ^ 4 / 2 + 3//8 * σ ^ 2 + pi * t ^ 2) * c + 4 * (-1//4 + pi * (η - ω) ^ 2 * σ ^ 2) * t) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-7//2)
 		l+=1;
       end
     end
     return v;
   end
+
   function d1phiVect(m::Int64,x::Array{Float64,1})
     #
-    phipt=phix(x[1]);
-    phipω=phiy(x[2]);
-    #
-    d1phipt=d1phix(x[1]);
-    d1phipω=d1phiy(x[2]);
-    #
     if m==1
-      v=zeros(kernel.Npt*kernel.Npω);
-      l=1;
-      for j in 1:kernel.Npω
-        for i in 1:kernel.Npt
-          v[l]=d1phipt[i]*phipω[j];
-          l+=1;
-        end
-      end
-      return v;
+		return d1φη(x);
     else
-      v=zeros(kernel.Npt*kernel.Npω);
-      l=1;
-      for j in 1:kernel.Npω
-        for i in 1:kernel.Npt
-          v[l]=phipt[i]*d1phipω[j];
-          l+=1;
-        end
-      end
-      return v;
+		return d1φθ(x);
     end
   end
+
   function d11phiVect(i::Int64,j::Int64,x::Array{Float64,1})
-    #
-    d1phipt=d1phix(x[1]);
-    d1phipω=d1phiy(x[2]);
-    #
-    v=zeros(kernel.Npt*kernel.Npω);
-    l=1;
-    for j in 1:kernel.Npω
-      for i in 1:kernel.Npt
-        v[l]=d1phipt[i]*d1phipω[j];
-        l+=1;
-      end
-    end
-    return v;
+	  return d11φ(x);
   end
   function d2phiVect(m::Int64,x::Array{Float64,1})
     #
