@@ -196,7 +196,6 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
   c(x1::Array{Float64,1},x2::Array{Float64,1})=dot(phiVect(x1),phiVect(x2));
-  println("type of c is $(typeof(c))")
 
   function d10c(i::Int64,x1::Array{Float64,1},x2::Array{Float64,1})
     return dot(d1phiVect(i,x1),phiVect(x2));
@@ -298,7 +297,6 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return(d2c)
   end
 
-  println("type of c is $(typeof(c))")
   operator_spec_lchirp(typeof(kernel),kernel.dim,kernel.σ,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
 end
 
