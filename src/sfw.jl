@@ -193,7 +193,6 @@ function sfw4blasso(fobj::blasso.fobj,kernel::blasso.kernel,op::blasso.operator,
     dt=time()-t;
 
     # Check non-degeneracy
-	println("TEST : newPos before checkConv = $(result.newPos)")
     if o.positivity
       if checkConvergence(-correl_min/fobj.lambda,result,o);
         break;
@@ -253,7 +252,6 @@ end
 
 function checkConvergence(max_etaL::Float64,r::sfw_result,o::sfw_options)
   cv=false;
-  println("TEST : value of max_etaL=$max_etaL")
 
   if abs(max_etaL-1)<o.eta_tol
     if o.show_success
@@ -268,7 +266,6 @@ function checkConvergence(max_etaL::Float64,r::sfw_result,o::sfw_options)
     end
     update_result!(r,blasso_converged=false);
     deleteat!(r.newPos,length(r.newPos));
-	println("TEST : r.newPos=$(r.newPos)")
     cv=true;
   end
   update_result!(r;max_etaL=max_etaL);

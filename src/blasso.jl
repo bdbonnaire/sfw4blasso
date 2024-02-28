@@ -15,6 +15,7 @@ abstract type cLaplace <: continuous end
 # Abstract parent type for the different operators
 abstract type operator end
 
+include("forward-models/spec_lin_chirp.jl")
 include("forward-models/dirichlet.jl");
 include("forward-models/gaussian.jl");
 include("forward-models/gaussian2D.jl");
@@ -213,7 +214,7 @@ function plotobservation(op::operator;kwargs...)
 
   elseif op.dim == 2
     u=range(op.bounds[1][1],stop=op.bounds[2][1],length=100);
-    v=range(op.bounds[1][1],stop=op.bounds[2][2],length=100);
+    v=range(op.bounds[1][2],stop=op.bounds[2][2],length=100);
     Ob=zeros(length(u),length(v));
     for i in 1:length(u)
       for j in 1:length(v)

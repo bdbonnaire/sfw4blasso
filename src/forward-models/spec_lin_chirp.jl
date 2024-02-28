@@ -10,7 +10,7 @@ mutable struct spec_lchirp <: discrete
 
   nbpointsgrid::Array{Int64,1}
   grid::Array{Array{Float64,1},1}
-  meshgrid::Array{Array{Float64, 1}, 1}
+  meshgrid::Array{Array{Float64, 1}, 2}
 
   σ::Float64
   bounds::Array{Array{Float64,1},1}
@@ -69,10 +69,10 @@ function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,D
     g[i]=collect(range(a[i], stop=b[i], length=nb_points_param_grid[i]));
   end
   #building the meshgrid
-  mg1 = ones(length(g[1])) * g[1]'
-  mg2 = g[2] * ones(length(g[2]))'
+  mg1 = ones(length(g[2])) * g[1]'
+  mg2 = g[2] * ones(length(g[1]))'
   meshgrid = vcat.(mg1,mg2)
-  return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, σ, bounds)
+  return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, meshgrid, σ, bounds)
 end
 
 mutable struct operator_spec_lchirp <: operator
@@ -342,7 +342,6 @@ end
 # Compute the argmin and min of the correl on the grid.
 function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
   correl_min,argmin=Inf,zeros(op.dim);
-  println("TEST: hello, entering minCorrelOnGrid")
   for pg in kernel.meshgrid
 	  buffer = op.correl(pg, Phiu)
       if !positivity
@@ -354,7 +353,6 @@ function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lch
       end
   end
 
-  println("TEST : minCorrelOnGrid over !")
   return argmin,correl_min
 end
 
