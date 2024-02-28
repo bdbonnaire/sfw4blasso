@@ -10,6 +10,7 @@ mutable struct spec_lchirp <: discrete
 
   nbpointsgrid::Array{Int64,1}
   grid::Array{Array{Float64,1},1}
+  meshgrid::Array{Array{Float64, 1}, 1}
 
   σ::Float64
   bounds::Array{Array{Float64,1},1}
@@ -40,24 +41,26 @@ function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,D
   p=Array{Array{Float64,1}}(undef,Npt*Npω);
   for i in 1:Npω
 	  for j in 1:Npt
-		  p[(i-1)*Npt+j] = [pt[i],pω[i]]
+		  p[(i-1)*Npt+j] = [pt[j],pω[i]]
 	  end
   end
-
 
   # Sampling of the parameter space X
   #		TODO: Generalize. This is only verified when considering a signal sampled over 1s. Otherwise the found η might not correlate with frequencies
   ## Computing the bounds of X
   θ_min = angle_min
   θ_max = angle_max
-  η_min = Npt + tan(θ_max)
-  η_max = -tan(θ_min)
+  η_min = -tan(θ_max)
+  η_max = Npω - tan(θ_min)
   bounds = [[η_min, θ_min], [η_max, θ_max]]
+  println("ηmin = $η_min et ηmax = $η_max")
+  println("θmin = $θ_min et θmax = $θ_max")
   ## Computing the grid
-  freq_coeff = 2
-  angle_coeff = 2
+  freq_coeff = .04
+  angle_coeff = .02
   # makes the number of parameter grid samples proportional to the span of [ηmin, ηmax] and [θmin, θmax] resp.
   nb_points_param_grid = [ abs(η_min - η_max)*freq_coeff, Npt* abs(θ_min - θ_max) * angle_coeff] .|> ceil
+  println(nb_points_param_grid)
   nb_points_param_grid = convert(Vector{Int64}, nb_points_param_grid)
   # buiding the grid
   g=Array{Array{Float64,1}}(undef,dim);
@@ -65,6 +68,10 @@ function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,D
   for i in 1:dim
     g[i]=collect(range(a[i], stop=b[i], length=nb_points_param_grid[i]));
   end
+  #building the meshgrid
+  mg1 = ones(length(g[1])) * g[1]'
+  mg2 = g[2] * ones(length(g[2]))'
+  meshgrid = vcat.(mg1,mg2)
   return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, σ, bounds)
 end
 
@@ -96,11 +103,10 @@ mutable struct operator_spec_lchirp <: operator
   d2correl::Function
 end
 
-# Functions that set the operator for the gaussian convolution in 2D when the initial measure is given
 function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
 
 	"""phiVect(x)
-	Given the parameters (η, θ), computes the associated spectrogram line
+	Given the parameters x=(η, θ), computes the associated spectrogram line
 	"""
   function phiVect(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
@@ -184,7 +190,6 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
   function d1phiVect(m::Int64,x::Array{Float64,1})
-    #
     if m==1
 		return d1φη(x);
     else
@@ -196,7 +201,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	  return d11φ(x);
   end
 
-  function d2φη(x::array{Float64,1})
+  function d2φη(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
@@ -216,7 +221,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return v;
   end
 
-  function d2φθ(x::array{Float64,1})
+  function d2φθ(x::Array{Float64,1})
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
@@ -285,14 +290,6 @@ end
   y=sum([a0[i]*phiVect(x0[i]) for i in 1:length(x0)])+w;
   normObs=.5*norm(y)^2;
 
-
-  PhisY=zeros(prod([length(kernel.grid[i]) for i in 1:2]));
-  l=1;
-  for pg in grid
-	  PhisY[l]=ob(pg);
-	  l +=1;
-  end
-
   function ob(x::Array{Float64,1},y::Array{Float64,1}=y)
     return dot(phiVect(x),y);
   end
@@ -306,8 +303,16 @@ end
     return dot(d2phiVect(k,x),y);
   end
 
+  # TODO: tester si mesh grid fonctionne
+  PhisY=zeros(prod(kernel.nbpointsgrid));
+  l=1;
+  for pg in kernel.meshgrid
+	  PhisY[l]=ob(pg);
+	  l +=1;
+  end
+
   function correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
-	  return dot(phi(x),sum(Phiu)-y);
+	  return dot(phiVect(x),sum(Phiu)-y);
   end
   function d1correl(x::Array{Float64,1},Phiu::Array{Array{Float64,1},1})
 	  d11 = dot(d1phiVect(1,x),sum(Phiu)-y);
@@ -328,7 +333,7 @@ end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
   a,X=blasso.decompAmpPos(u,d=op.dim);
-  Phiu = [a[i]*op.phi(X[i][1]) for i in 1:length(a)];
+  Phiu = [a[i]*op.phi(X[i]) for i in 1:length(a)];
   # Phiux=[a[i]*op.phix(X[i][1]) for i in 1:length(a)];
   # Phiuy=[op.phiy(X[i][2]) for i in 1:length(a)];
   return Phiu;
@@ -337,8 +342,9 @@ end
 # Compute the argmin and min of the correl on the grid.
 function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
   correl_min,argmin=Inf,zeros(op.dim);
-  for pg in p
-	  buffer = correl(pg, Phiu)
+  println("TEST: hello, entering minCorrelOnGrid")
+  for pg in kernel.meshgrid
+	  buffer = op.correl(pg, Phiu)
       if !positivity
         buffer=-abs(buffer);
       end
@@ -348,6 +354,7 @@ function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lch
       end
   end
 
+  println("TEST : minCorrelOnGrid over !")
   return argmin,correl_min
 end
 
