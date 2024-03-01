@@ -1,66 +1,66 @@
 mutable struct gaussianLines <: discrete
   dim::Int64
-  pt::Array{Float64,1}
-  pω::Array{Float64,1}
+  px::Array{Float64,1}
+  py::Array{Float64,1}
   p::Array{Array{Float64,1},1}
-  Npt::Int64
-  Npω::Int64
-  Dpt::Float64
-  Dpω::Float64
+  Npx::Int64
+  Npy::Int64
+  Dpx::Float64
+  Dpy::Float64
 
   nbpointsgrid::Array{Int64,1}
   grid::Array{Array{Float64,1},1}
   meshgrid::Array{Array{Float64, 1}, 2}
 
-  σ::Float64
+  sigma::Array{Float64,1}
   bounds::Array{Array{Float64,1},1}
 end
 
-""" setspecKernel(pt, pω, Dpt, Dpω, σ, angle_min, angle_max)
+""" setspecKernel(px, py, Dpx, Dpy, σ, angle_min, angle_max)
 Sets the kernel structure `spec_lchirp` corresponding to φ: X -> H in the sfw4blasso paper.
 
-In our case, X=[η_min, η_max]x[θ_min, θ_max] where 
+In our case, X=[a_min, a_max]x[θ_min, θ_max] where 
 - θ_min, θ_max correspond to `angle_min`, `angle_max` and 
-- η_min and η_max are computed from θ_min and θ_max.
+- a_min and a_max are computed from θ_min and θ_max.
 
 # Args
-- pt, pω : Array{Float64,1} 
+- px, py : Array{Float64,1} 
 	the time and frequency grid on H 
-- Dpt, Dpω : Float64
-	The spacing in `pt` and `pω`
-- σ : Float64
+- Dpx, Dpy : Float64
+	The spacing in `px` and `py`
+- sigma : Float64
 	window width used to compute the spectrogram
 - angle_min, angle_max : Float64
 	min and max values for the angle. [angle_min, angle_max] must be included in [-π/2, π/2).
 """
-function setGaussLinesKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,Dpω::Float64, σ::Float64, angle_min::Float64, angle_max::Float64)
+function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Float64,Dpy::Float64, sigma::Array{Float64,1}, angle_min::Float64, angle_max::Float64)
 
   dim=2;
   # Sampling of the Kernel
-  Npt,Npω=length(pt),length(pω);
-  p=Array{Array{Float64,1}}(undef,Npt*Npω);
-  for i in 1:Npω
-	  for j in 1:Npt
-		  p[(i-1)*Npt+j] = [pt[j],pω[i]]
+  Npx,Npy=length(px),length(py);
+  p=Array{Array{Float64,1}}(undef,Npx*Npy);
+  for i in 1:Npy
+	  for j in 1:Npx
+		  p[(i-1)*Npx+j] = [px[j],py[i]]
 	  end
   end
 
   # Sampling of the parameter space X
-  #		TODO: Generalize. This is only verified when considering a signal sampled over 1s. Otherwise the found η might not correlate with frequencies
+  #		TODO: Generalize. This is only verified when considering a signal sampled over 1s. Otherwise the found a might not correlate with frequencies
   ## Computing the bounds of X
   θ_min = angle_min
   θ_max = angle_max
-  η_min = -tan(θ_max)
-  η_max = 1 - tan(θ_min)
-  bounds = [[η_min, θ_min], [η_max, θ_max]]
-  println("ηmin = $η_min et ηmax = $η_max")
+  a_min = -tan(θ_max)
+  a_max = 1 - tan(θ_min)
+  bounds = [[a_min, θ_min], [a_max, θ_max]]
+  println("amin = $a_min et amax = $a_max")
   println("θmin = $θ_min et θmax = $θ_max")
   ## Computing the grid
   freq_coeff = .004
   angle_coeff = .02
-  # makes the number of parameter grid samples proportional to the span of [ηmin, ηmax] and [θmin, θmax] resp.
-  nb_points_param_grid = [ Npω * abs(η_min - η_max)*freq_coeff, 
-						  Npt* abs(θ_min - θ_max) * angle_coeff] .|> ceil
+  # makes the number of parameter grid samples proportional to the span of [amin, amax] and [θmin, θmax] resp.
+  nb_points_param_grid = [ Npy * abs(a_min - a_max)*freq_coeff, 
+						  Npx* abs(θ_min - θ_max) * angle_coeff] .|> ceil
   println("TEST : Number of points on the grid : $nb_points_param_grid")
   nb_points_param_grid = convert(Vector{Int64}, nb_points_param_grid)
   # buiding the grid
@@ -73,13 +73,13 @@ function setGaussLinesKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Flo
   mg1 = ones(length(g[2])) * g[1]'
   mg2 = g[2] * ones(length(g[1]))'
   meshgrid = vcat.(mg1,mg2)
-  return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, meshgrid, σ, bounds)
+  return spec_lchirp(dim, px, py, p, Npx, Npy, Dpx, Dpy, nb_points_param_grid, g, meshgrid, sigma, bounds)
 end
 
-mutable struct operator_spec_lchirp <: operator
+mutable struct operator_gaussLines <: operator
   ker::DataType
   dim::Int64
-  sigma::Float64
+  sigma::Array{Float64,1}
   bounds::Array{Array{Float64,1},1}
 
   normObs::Float64
@@ -104,50 +104,46 @@ mutable struct operator_spec_lchirp <: operator
   d2correl::Function
 end
 
-function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
 
 	"""phiVect(x)
-	Given the parameters x=(ηv, θv), computes the associated spectrogram line.
+	Given the parameters x=(av, θv), computes the associated spectrogram line.
 
-	ηv and θv are the "visual" arguments, that is those when we consider our observation
-	to be on a window of [0,1]x[0,1]. In reality the frequencies are on [0,kernel.Npω-1]
+	av and θv are the "visual" arguments, that is those when we consider our observation
+	to be on a window of [0,1]x[0,1]. In reality the frequencies are on [0,kernel.Npy-1]
 	"""
   function phiVect(x::Array{Float64,1})
-	# x is of the form (ηv, θv)
-    v=zeros(kernel.Npt*kernel.Npω);
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
-	local c = tan(θ)
-	local σ = kernel.σ
+	local a = x[1]
+	local θ = x[2]
+	local σ = kernel.sigma
 	
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		  ω=kernel.pω[i]
-		  t=kernel.pt[j]
-		  v[l]= σ * (1 + σ ^ 4 * c ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		  y=kernel.py[i]
+		  x=kernel.px[j]
+		  v[l]= √(2) * (π * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2)) ^ (-1//2) * exp(-(y - tan(θ) * x - a) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) / 2
         l+=1;
       end
     end
     return v;
   end
 
-  function d1φη(x::Array{Float64,1})
-    v=zeros(kernel.Npt*kernel.Npω);
+  function d1φa(x::Array{Float64,1})
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
-	local c = tan(θ)
-	local σ = kernel.σ
+	local a = x[1]
+	local θ = x[2]
+	local σ = kernel.sigma
 	
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		ω=kernel.pω[i]
-		t=kernel.pt[j]
-		v[l]=  4 * σ ^ 3 * (1 + σ ^ 4 * c ^ 2) ^ (-3//2) * pi * (ω - η - c * t) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
-		v[l] *= kernel.Npω
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		y=kernel.py[i]
+		x=kernel.px[j]
+		v[l]=  -√(2) * (tan(θ) * x + a - y) * exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-3//2) / 2
 		l+=1;
       end
     end
@@ -155,43 +151,39 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
   function d1φθ(x::Array{Float64,1})
-    v=zeros(kernel.Npt*kernel.Npω);
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
-	local c = tan(θ)
-	local σ = kernel.σ
+	local a = x[1]
+	local θ = x[2]
+	local σ = kernel.sigma
 	
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		ω=kernel.pω[i]
-		t=kernel.pt[j]
-		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
-		# ∂θ / ∂θv
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		y=kernel.py[i]
+		x=kernel.px[j]
+		v[l] = √(2) * ((-2 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * sin(θ) * cos(θ) ^ 3 - 2 * x * σ[2] ^ 2 * (y - a) * cos(θ) ^ 2 + (-σ[1] ^ 4 * sin(θ) ^ 2 + (σ[2] ^ 2 + (y - a) ^ 2) * σ[1] ^ 2 + σ[2] ^ 2 * (x + y - a) * (x - y + a)) * sin(θ) * cos(θ) - x * (σ[1] ^ 2 * (x * tan(θ) ^ 3 + 2 * y - 2 * a) * sin(θ) ^ 2 - σ[1] ^ 2 * (y - a) * tan(θ) ^ 2 + 2 * x * tan(θ) * σ[2] ^ 2 - 3 * σ[2] ^ 2 * (y - a))) * exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) / 2
+
 		l+=1;
       end
     end
-		v .*= kernel.Npω / (cos(x[2])^2 + kernel.Npω^2 * sin(x[2])^2)
     return v;
   end
 
 
   function d11φ(x::Array{Float64,1})
-    v=zeros(kernel.Npt*kernel.Npω);
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
-	local c = tan(θ)
-	local σ = kernel.σ
+	local a = x[1]
+	local θ = x[2]
+	local σ = kernel.sigma
 	
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		ω=kernel.pω[i]
-		t=kernel.pt[j]
-		v[l] = 4 * (1 + c ^ 2) * pi * σ ^ 3 * (2 * c ^ 4 * σ ^ 8 * t - 4 * (η - ω) * σ ^ 6 * (pi * t ^ 2 - 3//4 * σ ^ 2) * c ^ 3 + 4 * (-2 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * σ ^ 2 * t * c ^ 2 + 8 * (η - ω) * σ ^ 2 * (-pi * (η - ω) ^ 2 * σ ^ 4 / 2 + 3//8 * σ ^ 2 + pi * t ^ 2) * c + 4 * (-1//4 + pi * (η - ω) ^ 2 * σ ^ 2) * t) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-7//2)
-		v[l] *= kernel.Npω^2 / (cos(x[2])^2 + kernel.Npω * sin(x[2])^2)
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		y=kernel.py[i]
+		x=kernel.px[j]
+		v[l] = -exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-7//2) * (-2 * sin(θ) ^ 4 * x * σ[1] ^ 4 - σ[1] ^ 2 * (x * tan(θ) * σ[1] ^ 2 - 3 * (σ[1] ^ 2 - 2//3 * σ[2] ^ 2) * (y - a)) * cos(θ) * sin(θ) ^ 3 - (4 * σ[2] ^ 2 * cos(θ) ^ 2 + x ^ 2 * tan(θ) ^ 4 - x * (y - a) * tan(θ) ^ 3 - σ[1] ^ 2 * tan(θ) ^ 2 + 2 * x * (y - a) * tan(θ) - 3 * σ[2] ^ 2 - 2 * (y - a) ^ 2) * σ[1] ^ 2 * x * sin(θ) ^ 2 + (-2 * σ[2] ^ 2 * (x * (σ[1] ^ 2 - σ[2] ^ 2 / 2) * tan(θ) - 2 * (σ[1] ^ 2 - 3//4 * σ[2] ^ 2) * (y - a)) * cos(θ) ^ 2 + (σ[2] ^ 2 * x ^ 2 - (y - a + σ[1]) * (y - a - σ[1]) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2) * (tan(θ) * x + a - y)) * cos(θ) * sin(θ) - 2 * (cos(θ) ^ 4 * σ[2] ^ 4 + (-σ[1] ^ 2 * tan(θ) ^ 2 / 2 + x * (y - a) * tan(θ) - 3//2 * σ[2] ^ 2 - (y - a) ^ 2) * σ[2] ^ 2 * cos(θ) ^ 2 + (tan(θ) * x + a - y) * (-σ[1] ^ 2 * (y - a) * tan(θ) ^ 2 / 2 + x * tan(θ) * σ[2] ^ 2 - 3//2 * σ[2] ^ 2 * (y - a))) * x) * π ^ (-1//2) / 2
 		l+=1;
       end
     end
@@ -200,7 +192,7 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 
   function d1phiVect(m::Int64,x::Array{Float64,1})
     if m==1
-		return d1φη(x);
+		return d1φa(x);
     else
 		return d1φθ(x);
     end
@@ -210,21 +202,19 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	  return d11φ(x);
   end
 
-  function d2φη(x::Array{Float64,1})
-    v=zeros(kernel.Npt*kernel.Npω);
+  function d2φa(x::Array{Float64,1})
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
-	local c = tan(θ)
-	local σ = kernel.σ
+	local a = x[1]
+	local θ = x[2]
+	local σ = kernel.sigma
 	
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		ω=kernel.pω[i]
-		t=kernel.pt[j]
-		v[l] = 4 * pi * σ ^ 3 * ((4 * pi * σ ^ 2 * t ^ 2 - σ ^ 4) * c ^ 2 + 8 * t * pi * σ ^ 2 * (η - ω) * c - 1 + 4 * pi * (η - ω) ^ 2 * σ ^ 2) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
-		v[l] *= kernel.Npω^2
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		y=kernel.py[i]
+		x=kernel.px[j]
+		v[l] = exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (tan(θ) ^ 2 * x ^ 2 - 2 * x * (y - a) * tan(θ) - σ[2] ^ 2 * cos(θ) ^ 2 - σ[1] ^ 2 * sin(θ) ^ 2 + (y - a) ^ 2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) * π ^ (-1//2) / 2
 		l+=1;
       end
   end
@@ -232,32 +222,30 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
   end
 
   function d2φθ(x::Array{Float64,1})
-    v=zeros(kernel.Npt*kernel.Npω);
+    v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local a = x[1]*kernel.Npy
+	local θ = atan(tan(x[2]) * kernel.Npy)
 	local c = tan(θ)
 	local σ = kernel.σ
 	
 	local d1φθtemp = d1φθ(x)
-	d1φθtemp /= kernel.Npω / (cos(x[2])^2 + kernel.Npω * sin(x[2])^2)
-    for j in 1:kernel.Npt
-      for i in 1:kernel.Npω
-		ω=kernel.pω[i]
-		t=kernel.pt[j]
-		v[l] =16 * (cos(θ) * sin(θ) ^ 6 * σ ^ 14 / 8 - pi * σ ^ 12 * t * (cos(θ) ^ 2 + 1) * (η - ω) * sin(θ) ^ 5 / 2 + ((-3//4 - pi * (η - ω) ^ 2 * σ ^ 6 + 3//4 * σ ^ 4 + pi * σ ^ 2 * t ^ 2) * cos(θ) ^ 2 / 2 + σ ^ 2 * (-3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 + 3//4 * pi * t ^ 2)) * cos(θ) * σ ^ 6 * sin(θ) ^ 4 - 2 * pi * (η - ω) * cos(θ) ^ 2 * σ ^ 6 * (σ ^ 2 * cos(θ) ^ 2 / 4 - pi * (η - ω) ^ 2 * σ ^ 4 - 3//4 * σ ^ 2 + pi * t ^ 2) * t * sin(θ) ^ 3 + pi * ((-(η - ω) ^ 2 * σ ^ 6 + t ^ 2 * σ ^ 2) * cos(θ) ^ 2 + pi * ((η - ω) ^ 4 * σ ^ 8 - 4 * t ^ 2 * (η - ω) ^ 2 * σ ^ 4 + t ^ 4)) * cos(θ) ^ 3 * σ ^ 2 * sin(θ) ^ 2 + 2 * pi * (η - ω) * cos(θ) ^ 4 * ((σ ^ 4 - 1) * cos(θ) ^ 2 / 4 + (-pi * (η - ω) ^ 2 * σ ^ 4 + 3//4 * σ ^ 2 + pi * t ^ 2) * σ ^ 2) * t * sin(θ) + ((-pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * cos(θ) ^ 2 / 2 + 3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 - 3//4 * pi * t ^ 2) * cos(θ) ^ 5) * σ ^ 3 * 0.1e1 / cos(θ) ^ 9 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-9//2) 
+	d1φθtemp /= kernel.Npy / (cos(x[2])^2 + kernel.Npy * sin(x[2])^2)
+    for j in 1:kernel.Npx
+      for i in 1:kernel.Npy
+		y=kernel.py[i]
+		x=kernel.px[j]
+		v[l] = exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * ((4 * x ^ 2 * tan(θ) ^ 2 * σ[1] ^ 6 + σ[1] ^ 8 * cos(θ) ^ 2 + σ[1] ^ 8) * sin(θ) ^ 6 + 8 * x * cos(θ) * σ[1] ^ 6 * (y - a) * sin(θ) ^ 5 + σ[1] ^ 2 * (2 * (2 * σ[2] ^ 2 * σ[1] ^ 4 - 3 * σ[2] ^ 4 * σ[1] ^ 2) * cos(θ) ^ 4 - 12 * σ[1] ^ 2 * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 3) * cos(θ) ^ 2 + x ^ 4 * tan(θ) ^ 6 * σ[1] ^ 2 - 3 * x ^ 2 * tan(θ) ^ 4 * σ[1] ^ 4 + 4 * x ^ 3 * σ[1] ^ 2 * (y - a) * tan(θ) ^ 3 - 2 * σ[2] ^ 2 * x ^ 4 * tan(θ) ^ 2 - 6 * x * σ[1] ^ 4 * (y - a) * tan(θ) + 6 * σ[1] ^ 2 * ((31 * x ^ 2 - σ[1] ^ 2) * σ[2] ^ 2 / 6 + (x ^ 2 - σ[1] ^ 2 / 6) * (y - a) ^ 2)) * sin(θ) ^ 4 - 8 * σ[1] ^ 2 * (-3 * cos(θ) ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 + (x ^ 2 + 19//4 * σ[1] ^ 2) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 2) * (y - a) * cos(θ) * x * sin(θ) ^ 3 + (-12 * σ[2] ^ 2 * σ[1] ^ 2 * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 4 + ((41 * x ^ 2 * σ[1] ^ 2 + x ^ 4 + (y - a) ^ 4) * σ[2] ^ 4 + 12 * (7//12 * σ[1] ^ 2 + x ^ 2 - (y - a) ^ 2 / 6) * σ[1] ^ 2 * (y - a) ^ 2 * σ[2] ^ 2 + σ[1] ^ 4 * (y - a) ^ 4) * cos(θ) ^ 2 - 2 * x ^ 3 * σ[1] ^ 4 * (y - a) * tan(θ) ^ 5 + 4 * x ^ 4 * tan(θ) ^ 4 * σ[1] ^ 2 * σ[2] ^ 2 + 2 * x * σ[1] ^ 6 * (y - a) * tan(θ) ^ 3 - 6 * σ[1] ^ 4 * (7//3 * σ[2] ^ 2 + (y - a) ^ 2) * x ^ 2 * tan(θ) ^ 2 + 20 * ((x ^ 2 + σ[1] ^ 2 / 2) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 10) * σ[1] ^ 2 * (y - a) * x * tan(θ) - 4 * σ[2] ^ 2 * ((x ^ 4 + 25//4 * x ^ 2 * σ[1] ^ 2) * σ[2] ^ 2 + 6 * σ[1] ^ 2 * (y - a) ^ 2 * (x ^ 2 - σ[1] ^ 2 / 24))) * sin(θ) ^ 2 - 4 * (2 * (-3 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * cos(θ) ^ 4 + (-9//2 * σ[2] ^ 4 + (29//2 * σ[1] ^ 2 + (x + y - a) * (x - y + a)) * σ[2] ^ 2 + 2 * σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 2 + (-13 * σ[1] ^ 2 - 7 * x ^ 2 + 3 * (y - a) ^ 2) * σ[2] ^ 2 / 2 - 3 * σ[1] ^ 2 * (y - a) ^ 2) * σ[2] ^ 2 * (y - a) * cos(θ) * x * sin(θ) + (4 * σ[1] ^ 2 * σ[2] ^ 6 - σ[2] ^ 8) * cos(θ) ^ 8 - 4 * σ[2] ^ 4 * (-σ[2] ^ 4 / 2 + (2 * σ[1] ^ 2 + (x + y - a) * (x - y + a)) * σ[2] ^ 2 + 3 * σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 6 + 6 * σ[2] ^ 4 * ((σ[1] ^ 2 + 17//3 * x ^ 2 - 5//3 * (y - a) ^ 2) * σ[2] ^ 2 / 2 + (x ^ 2 + 17//6 * σ[1] ^ 2) * (y - a) ^ 2) * cos(θ) ^ 4 - 18 * σ[2] ^ 4 * (7//9 * σ[2] ^ 2 * x ^ 2 + (x ^ 2 + 2//9 * σ[1] ^ 2) * (y - a) ^ 2) * cos(θ) ^ 2 + 4 * x * (x * σ[1] ^ 4 * (y - a) ^ 2 * tan(θ) ^ 4 / 4 - 5//2 * x ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 * (y - a) * tan(θ) ^ 3 + σ[2] ^ 2 * (σ[2] ^ 2 * x ^ 2 + 2 * σ[1] ^ 2 * (y - a) ^ 2) * x * tan(θ) ^ 2 - 3 * σ[2] ^ 2 * (y - a) * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 6) * tan(θ) + 13//4 * x * σ[2] ^ 4 * (y - a) ^ 2)) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-9//2) * π ^ (-1//2) / 2
 		l+=1;
       end
     end
-	v .-= d1φθtemp .* 2(kernel.Npω^2 - 1) * cos(x[2])*sin(x[2]) / kernel.Npω
-	v .*= ( kernel.Npω / (cos(x[2])^2 + kernel.Npω * sin(x[2])^2) )^2
     return v;
 end
 
   function d2phiVect(m::Int64,x::Array{Float64,1})
     if m==1
-		return d2φη(x);
+		return d2φa(x);
     else
 		return d2φθ(x);
     end
