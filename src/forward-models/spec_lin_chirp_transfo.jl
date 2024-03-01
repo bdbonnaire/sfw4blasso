@@ -137,8 +137,8 @@ function setSpecTOperator(kernel::spec_lchirp_transfo,a0::Array{Float64,1},x0::A
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local η = x[1]
+	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
 	local N = kernel.Npω
@@ -159,8 +159,8 @@ function setSpecTOperator(kernel::spec_lchirp_transfo,a0::Array{Float64,1},x0::A
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local η = x[1]
+	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
 	local N = kernel.Npω
@@ -169,7 +169,7 @@ function setSpecTOperator(kernel::spec_lchirp_transfo,a0::Array{Float64,1},x0::A
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-v[l] = -N * (1 + tan(θ) ^ 2) * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2)) * (N ^ 3 * tan(θ) ^ 3 * σ ^ 6 - 4 * t * N ^ 2 * pi * σ ^ 4 * (η * N - ω) * tan(θ) ^ 2 + 4 * N * (-N ^ 2 * pi * η ^ 2 * σ ^ 4 + 2 * N * pi * η * ω * σ ^ 4 - pi * ω ^ 2 * σ ^ 4 + pi * t ^ 2 + σ ^ 2 / 4) * tan(θ) + 4 * t * pi * (η * N - ω)) * σ ^ 3 * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-5//2)
+v[l] = -N * (1 + c ^ 2) * exp(-2 * pi * σ ^ 2 * (c * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2 * N ^ 2)) * (N ^ 3 * c ^ 3 * σ ^ 6 - 4 * t * N ^ 2 * pi * σ ^ 4 * (η * N - ω) * c ^ 2 + 4 * N * (-N ^ 2 * pi * η ^ 2 * σ ^ 4 + 2 * N * pi * η * ω * σ ^ 4 - pi * ω ^ 2 * σ ^ 4 + pi * t ^ 2 + σ ^ 2 / 4) * c + 4 * t * pi * (η * N - ω)) * σ ^ 3 * (1 + σ ^ 4 * c ^ 2 * N ^ 2) ^ (-5//2)
 		l+=1;
       end
     end
@@ -181,8 +181,8 @@ v[l] = -N * (1 + tan(θ) ^ 2) * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local η = x[1]
+	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
 	local N = kernel.Npω
@@ -214,8 +214,8 @@ v[l] = -N * (1 + tan(θ) ^ 2) * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local η = x[1]
+	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
 	local N = kernel.Npω
@@ -235,8 +235,8 @@ v[l] = -N * (1 + tan(θ) ^ 2) * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
-	local η = x[1]*kernel.Npω
-	local θ = atan(tan(x[2]) * kernel.Npω)
+	local η = x[1]
+	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
 	local N = kernel.Npω
