@@ -66,14 +66,11 @@ plotSpikes2D(x0,a0, result, op)
   ╠═╡ =#
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
-# ╠═╡ disabled = true
-#=╠═╡
 begin
 	lambda=0.005;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
-  ╠═╡ =#
 
 # ╔═╡ 67884e0d-db4a-4a6a-ace9-ec88efe65d14
 #begin
@@ -84,10 +81,7 @@ end
 
 # ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
 # ╠═╡ show_logs = false
-# ╠═╡ disabled = true
-#=╠═╡
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
-  ╠═╡ =#
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
 # ╠═╡ show_logs = false

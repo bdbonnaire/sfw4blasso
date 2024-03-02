@@ -225,7 +225,7 @@ function setGaussLineOperator(kernel::gaussianLines,a0::Array{Float64,1},x0::Arr
     local l=1; 
     local a = x[1]
     local θ = x[2]
-	local σ = kernel.σ
+	local σ = kernel.sigma
 	
 	local d1φθtemp = d1φθ(x) # Q°: à quoi ça sert ?
 	d1φθtemp /= kernel.Npy / (cos(x[2])^2 + kernel.Npy * sin(x[2])^2)
@@ -334,7 +334,7 @@ end
   operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
 end
 
-function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
+function computePhiu(u::Array{Float64,1},op::blasso.operator_gaussLines)
   a,X=blasso.decompAmpPos(u,d=op.dim);
   Phiu = [a[i]*op.phi(X[i]) for i in 1:length(a)];
   # Phiux=[a[i]*op.phix(X[i][1]) for i in 1:length(a)];
@@ -343,7 +343,7 @@ function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
 end
 
 # Compute the argmin and min of the correl on the grid.
-function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.spec_lchirp,op::blasso.operator,positivity::Bool=true)
+function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussianLines,op::blasso.operator_gaussLines,positivity::Bool=true)
   correl_min,argmin=Inf,zeros(op.dim);
   for pg in kernel.meshgrid
 	  buffer = op.correl(pg, Phiu)
@@ -362,7 +362,7 @@ end
 """
 Sets the amplitude bounds 
 """
-function setbounds(op::blasso.operator_spec_lchirp,positivity::Bool=true,ampbounds::Bool=true)
+function setbounds(op::blasso.operator_gaussLines,positivity::Bool=true,ampbounds::Bool=true)
   x_low=op.bounds[1];
   x_up=op.bounds[2];
 
