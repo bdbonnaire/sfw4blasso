@@ -15,6 +15,7 @@ abstract type cLaplace <: continuous end
 # Abstract parent type for the different operators
 abstract type operator end
 
+include("forward-models/gaussian_lines.jl")
 include("forward-models/spec_lin_chirp.jl")
 include("forward-models/spec_lin_chirp_transfo.jl")
 include("forward-models/dirichlet.jl");

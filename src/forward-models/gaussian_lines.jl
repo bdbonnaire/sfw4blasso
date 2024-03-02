@@ -5,8 +5,6 @@ mutable struct gaussianLines <: discrete
   p::Array{Array{Float64,1},1}
   Npx::Int64
   Npy::Int64
-  Dpx::Float64
-  Dpy::Float64
 
   nbpointsgrid::Array{Int64,1}
   grid::Array{Array{Float64,1},1}
@@ -33,7 +31,7 @@ In our case, X=[a_min, a_max]x[θ_min, θ_max] where
 - angle_min, angle_max : Float64
 	min and max values for the angle. [angle_min, angle_max] must be included in [-π/2, π/2).
 """
-function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Float64,Dpy::Float64, sigma::Array{Float64,1}, angle_min::Float64, angle_max::Float64)
+function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1}, sigma::Array{Float64,1}, angle_min::Float64, angle_max::Float64)
 
   dim=2;
   # Sampling of the Kernel
@@ -50,16 +48,16 @@ function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Floa
   ## Computing the bounds of X
   θ_min = angle_min
   θ_max = angle_max
-  a_min = -tan(θ_max)
-  a_max = 1 - tan(θ_min)
-  bounds = [[a_min, θ_min], [a_max, θ_max]]
+  a_min = -Npx*tan(θ_max)
+  a_max = Npy - Npx*tan(θ_min)
+  bounds = [[a_min, θ_min], [a_max, θ_max]] # bound of the parameter space, not the image
   println("amin = $a_min et amax = $a_max")
   println("θmin = $θ_min et θmax = $θ_max")
   ## Computing the grid
   freq_coeff = .004
   angle_coeff = .02
   # makes the number of parameter grid samples proportional to the span of [amin, amax] and [θmin, θmax] resp.
-  nb_points_param_grid = [ Npy * abs(a_min - a_max)*freq_coeff, 
+  nb_points_param_grid = [ Npy * abs(a_min - a_max)*freq_coeff, # Q°: check
 						  Npx* abs(θ_min - θ_max) * angle_coeff] .|> ceil
   println("TEST : Number of points on the grid : $nb_points_param_grid")
   nb_points_param_grid = convert(Vector{Int64}, nb_points_param_grid)
@@ -72,8 +70,8 @@ function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1},Dpx::Floa
   #building the meshgrid
   mg1 = ones(length(g[2])) * g[1]'
   mg2 = g[2] * ones(length(g[1]))'
-  meshgrid = vcat.(mg1,mg2)
-  return spec_lchirp(dim, px, py, p, Npx, Npy, Dpx, Dpy, nb_points_param_grid, g, meshgrid, sigma, bounds)
+  meshgrid = vcat.(mg1,mg2) # Q°: plot the meshgrid
+  return gaussianLines(dim, px, py, p, Npx, Npy, nb_points_param_grid, g, meshgrid, sigma, bounds)
 end
 
 mutable struct operator_gaussLines <: operator
@@ -104,7 +102,7 @@ mutable struct operator_gaussLines <: operator
   d2correl::Function
 end
 
-function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+function setGaussLineOperator(kernel::gaussianLines,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
 
 	"""phiVect(x)
 	Given the parameters x=(av, θv), computes the associated spectrogram line.
@@ -122,9 +120,9 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
 	
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		  y=kernel.py[i]
-		  x=kernel.px[j]
-		  v[l]= √(2) * (π * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2)) ^ (-1//2) * exp(-(y - tan(θ) * x - a) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) / 2
+		  yy=kernel.py[i]
+		  xx=kernel.px[j]
+		  v[l]= √(2) * (π * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2)) ^ (-1//2) * exp(-(yy - tan(θ) * xx - a) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) / 2
         l+=1;
       end
     end
@@ -141,9 +139,9 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
 	
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		y=kernel.py[i]
-		x=kernel.px[j]
-		v[l]=  -√(2) * (tan(θ) * x + a - y) * exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-3//2) / 2
+		yy=kernel.py[i]
+		xx=kernel.px[j]
+		v[l]=  -√(2) * (tan(θ) * xx + a - yy) * exp(-(tan(θ) * xx + a - yy) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-3//2) / 2
 		l+=1;
       end
     end
@@ -160,9 +158,9 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
 	
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		y=kernel.py[i]
-		x=kernel.px[j]
-		v[l] = √(2) * ((-2 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * sin(θ) * cos(θ) ^ 3 - 2 * x * σ[2] ^ 2 * (y - a) * cos(θ) ^ 2 + (-σ[1] ^ 4 * sin(θ) ^ 2 + (σ[2] ^ 2 + (y - a) ^ 2) * σ[1] ^ 2 + σ[2] ^ 2 * (x + y - a) * (x - y + a)) * sin(θ) * cos(θ) - x * (σ[1] ^ 2 * (x * tan(θ) ^ 3 + 2 * y - 2 * a) * sin(θ) ^ 2 - σ[1] ^ 2 * (y - a) * tan(θ) ^ 2 + 2 * x * tan(θ) * σ[2] ^ 2 - 3 * σ[2] ^ 2 * (y - a))) * exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) / 2
+		yy=kernel.py[i]
+		xx=kernel.px[j]
+		v[l] = √(2) * ((-2 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * sin(θ) * cos(θ) ^ 3 - 2 * xx * σ[2] ^ 2 * (yy - a) * cos(θ) ^ 2 + (-σ[1] ^ 4 * sin(θ) ^ 2 + (σ[2] ^ 2 + (yy - a) ^ 2) * σ[1] ^ 2 + σ[2] ^ 2 * (xx + yy - a) * (xx - yy + a)) * sin(θ) * cos(θ) - xx * (σ[1] ^ 2 * (xx * tan(θ) ^ 3 + 2 * yy - 2 * a) * sin(θ) ^ 2 - σ[1] ^ 2 * (yy - a) * tan(θ) ^ 2 + 2 * xx * tan(θ) * σ[2] ^ 2 - 3 * σ[2] ^ 2 * (yy - a))) * exp(-(tan(θ) * xx + a - yy) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * π ^ (-1//2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) / 2
 
 		l+=1;
       end
@@ -181,9 +179,9 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
 	
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		y=kernel.py[i]
-		x=kernel.px[j]
-		v[l] = -exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-7//2) * (-2 * sin(θ) ^ 4 * x * σ[1] ^ 4 - σ[1] ^ 2 * (x * tan(θ) * σ[1] ^ 2 - 3 * (σ[1] ^ 2 - 2//3 * σ[2] ^ 2) * (y - a)) * cos(θ) * sin(θ) ^ 3 - (4 * σ[2] ^ 2 * cos(θ) ^ 2 + x ^ 2 * tan(θ) ^ 4 - x * (y - a) * tan(θ) ^ 3 - σ[1] ^ 2 * tan(θ) ^ 2 + 2 * x * (y - a) * tan(θ) - 3 * σ[2] ^ 2 - 2 * (y - a) ^ 2) * σ[1] ^ 2 * x * sin(θ) ^ 2 + (-2 * σ[2] ^ 2 * (x * (σ[1] ^ 2 - σ[2] ^ 2 / 2) * tan(θ) - 2 * (σ[1] ^ 2 - 3//4 * σ[2] ^ 2) * (y - a)) * cos(θ) ^ 2 + (σ[2] ^ 2 * x ^ 2 - (y - a + σ[1]) * (y - a - σ[1]) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2) * (tan(θ) * x + a - y)) * cos(θ) * sin(θ) - 2 * (cos(θ) ^ 4 * σ[2] ^ 4 + (-σ[1] ^ 2 * tan(θ) ^ 2 / 2 + x * (y - a) * tan(θ) - 3//2 * σ[2] ^ 2 - (y - a) ^ 2) * σ[2] ^ 2 * cos(θ) ^ 2 + (tan(θ) * x + a - y) * (-σ[1] ^ 2 * (y - a) * tan(θ) ^ 2 / 2 + x * tan(θ) * σ[2] ^ 2 - 3//2 * σ[2] ^ 2 * (y - a))) * x) * π ^ (-1//2) / 2
+		yy=kernel.py[i]
+		xx=kernel.px[j]
+		v[l] = -exp(-(tan(θ) * xx + a - yy) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-7//2) * (-2 * sin(θ) ^ 4 * xx * σ[1] ^ 4 - σ[1] ^ 2 * (xx * tan(θ) * σ[1] ^ 2 - 3 * (σ[1] ^ 2 - 2//3 * σ[2] ^ 2) * (yy - a)) * cos(θ) * sin(θ) ^ 3 - (4 * σ[2] ^ 2 * cos(θ) ^ 2 + xx ^ 2 * tan(θ) ^ 4 - xx * (yy - a) * tan(θ) ^ 3 - σ[1] ^ 2 * tan(θ) ^ 2 + 2 * xx * (yy - a) * tan(θ) - 3 * σ[2] ^ 2 - 2 * (yy - a) ^ 2) * σ[1] ^ 2 * xx * sin(θ) ^ 2 + (-2 * σ[2] ^ 2 * (xx * (σ[1] ^ 2 - σ[2] ^ 2 / 2) * tan(θ) - 2 * (σ[1] ^ 2 - 3//4 * σ[2] ^ 2) * (yy - a)) * cos(θ) ^ 2 + (σ[2] ^ 2 * xx ^ 2 - (yy - a + σ[1]) * (yy - a - σ[1]) * σ[2] ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2) * (tan(θ) * xx + a - yy)) * cos(θ) * sin(θ) - 2 * (cos(θ) ^ 4 * σ[2] ^ 4 + (-σ[1] ^ 2 * tan(θ) ^ 2 / 2 + xx * (yy - a) * tan(θ) - 3//2 * σ[2] ^ 2 - (yy - a) ^ 2) * σ[2] ^ 2 * cos(θ) ^ 2 + (tan(θ) * xx + a - yy) * (-σ[1] ^ 2 * (yy - a) * tan(θ) ^ 2 / 2 + xx * tan(θ) * σ[2] ^ 2 - 3//2 * σ[2] ^ 2 * (yy - a))) * xx) * π ^ (-1//2) / 2
 		l+=1;
       end
     end
@@ -212,9 +210,9 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
 	
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		y=kernel.py[i]
-		x=kernel.px[j]
-		v[l] = exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (tan(θ) ^ 2 * x ^ 2 - 2 * x * (y - a) * tan(θ) - σ[2] ^ 2 * cos(θ) ^ 2 - σ[1] ^ 2 * sin(θ) ^ 2 + (y - a) ^ 2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) * π ^ (-1//2) / 2
+		yy=kernel.py[i]
+		xx=kernel.px[j]
+		v[l] = exp(-(tan(θ) * xx + a - yy) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * (tan(θ) ^ 2 * xx ^ 2 - 2 * xx * (yy - a) * tan(θ) - σ[2] ^ 2 * cos(θ) ^ 2 - σ[1] ^ 2 * sin(θ) ^ 2 + (yy - a) ^ 2) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-5//2) * π ^ (-1//2) / 2
 		l+=1;
       end
   end
@@ -225,18 +223,17 @@ function setGaussLineOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array
     v=zeros(kernel.Npx*kernel.Npy);
 	# index for the loop
     local l=1; 
-	local a = x[1]*kernel.Npy
-	local θ = atan(tan(x[2]) * kernel.Npy)
-	local c = tan(θ)
+    local a = x[1]
+    local θ = x[2]
 	local σ = kernel.σ
 	
-	local d1φθtemp = d1φθ(x)
+	local d1φθtemp = d1φθ(x) # Q°: à quoi ça sert ?
 	d1φθtemp /= kernel.Npy / (cos(x[2])^2 + kernel.Npy * sin(x[2])^2)
     for j in 1:kernel.Npx
       for i in 1:kernel.Npy
-		y=kernel.py[i]
-		x=kernel.px[j]
-		v[l] = exp(-(tan(θ) * x + a - y) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * ((4 * x ^ 2 * tan(θ) ^ 2 * σ[1] ^ 6 + σ[1] ^ 8 * cos(θ) ^ 2 + σ[1] ^ 8) * sin(θ) ^ 6 + 8 * x * cos(θ) * σ[1] ^ 6 * (y - a) * sin(θ) ^ 5 + σ[1] ^ 2 * (2 * (2 * σ[2] ^ 2 * σ[1] ^ 4 - 3 * σ[2] ^ 4 * σ[1] ^ 2) * cos(θ) ^ 4 - 12 * σ[1] ^ 2 * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 3) * cos(θ) ^ 2 + x ^ 4 * tan(θ) ^ 6 * σ[1] ^ 2 - 3 * x ^ 2 * tan(θ) ^ 4 * σ[1] ^ 4 + 4 * x ^ 3 * σ[1] ^ 2 * (y - a) * tan(θ) ^ 3 - 2 * σ[2] ^ 2 * x ^ 4 * tan(θ) ^ 2 - 6 * x * σ[1] ^ 4 * (y - a) * tan(θ) + 6 * σ[1] ^ 2 * ((31 * x ^ 2 - σ[1] ^ 2) * σ[2] ^ 2 / 6 + (x ^ 2 - σ[1] ^ 2 / 6) * (y - a) ^ 2)) * sin(θ) ^ 4 - 8 * σ[1] ^ 2 * (-3 * cos(θ) ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 + (x ^ 2 + 19//4 * σ[1] ^ 2) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 2) * (y - a) * cos(θ) * x * sin(θ) ^ 3 + (-12 * σ[2] ^ 2 * σ[1] ^ 2 * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 4 + ((41 * x ^ 2 * σ[1] ^ 2 + x ^ 4 + (y - a) ^ 4) * σ[2] ^ 4 + 12 * (7//12 * σ[1] ^ 2 + x ^ 2 - (y - a) ^ 2 / 6) * σ[1] ^ 2 * (y - a) ^ 2 * σ[2] ^ 2 + σ[1] ^ 4 * (y - a) ^ 4) * cos(θ) ^ 2 - 2 * x ^ 3 * σ[1] ^ 4 * (y - a) * tan(θ) ^ 5 + 4 * x ^ 4 * tan(θ) ^ 4 * σ[1] ^ 2 * σ[2] ^ 2 + 2 * x * σ[1] ^ 6 * (y - a) * tan(θ) ^ 3 - 6 * σ[1] ^ 4 * (7//3 * σ[2] ^ 2 + (y - a) ^ 2) * x ^ 2 * tan(θ) ^ 2 + 20 * ((x ^ 2 + σ[1] ^ 2 / 2) * σ[2] ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 10) * σ[1] ^ 2 * (y - a) * x * tan(θ) - 4 * σ[2] ^ 2 * ((x ^ 4 + 25//4 * x ^ 2 * σ[1] ^ 2) * σ[2] ^ 2 + 6 * σ[1] ^ 2 * (y - a) ^ 2 * (x ^ 2 - σ[1] ^ 2 / 24))) * sin(θ) ^ 2 - 4 * (2 * (-3 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * cos(θ) ^ 4 + (-9//2 * σ[2] ^ 4 + (29//2 * σ[1] ^ 2 + (x + y - a) * (x - y + a)) * σ[2] ^ 2 + 2 * σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 2 + (-13 * σ[1] ^ 2 - 7 * x ^ 2 + 3 * (y - a) ^ 2) * σ[2] ^ 2 / 2 - 3 * σ[1] ^ 2 * (y - a) ^ 2) * σ[2] ^ 2 * (y - a) * cos(θ) * x * sin(θ) + (4 * σ[1] ^ 2 * σ[2] ^ 6 - σ[2] ^ 8) * cos(θ) ^ 8 - 4 * σ[2] ^ 4 * (-σ[2] ^ 4 / 2 + (2 * σ[1] ^ 2 + (x + y - a) * (x - y + a)) * σ[2] ^ 2 + 3 * σ[1] ^ 2 * (y - a) ^ 2) * cos(θ) ^ 6 + 6 * σ[2] ^ 4 * ((σ[1] ^ 2 + 17//3 * x ^ 2 - 5//3 * (y - a) ^ 2) * σ[2] ^ 2 / 2 + (x ^ 2 + 17//6 * σ[1] ^ 2) * (y - a) ^ 2) * cos(θ) ^ 4 - 18 * σ[2] ^ 4 * (7//9 * σ[2] ^ 2 * x ^ 2 + (x ^ 2 + 2//9 * σ[1] ^ 2) * (y - a) ^ 2) * cos(θ) ^ 2 + 4 * x * (x * σ[1] ^ 4 * (y - a) ^ 2 * tan(θ) ^ 4 / 4 - 5//2 * x ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 * (y - a) * tan(θ) ^ 3 + σ[2] ^ 2 * (σ[2] ^ 2 * x ^ 2 + 2 * σ[1] ^ 2 * (y - a) ^ 2) * x * tan(θ) ^ 2 - 3 * σ[2] ^ 2 * (y - a) * (σ[2] ^ 2 * x ^ 2 + σ[1] ^ 2 * (y - a) ^ 2 / 6) * tan(θ) + 13//4 * x * σ[2] ^ 4 * (y - a) ^ 2)) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-9//2) * π ^ (-1//2) / 2
+		yy=kernel.py[i]
+		xx=kernel.px[j]
+		v[l] = exp(-(tan(θ) * xx + a - yy) ^ 2 / (2 * σ[1] ^ 2 * sin(θ) ^ 2 + 2 * σ[2] ^ 2 * cos(θ) ^ 2)) * √(2) * ((4 * xx ^ 2 * tan(θ) ^ 2 * σ[1] ^ 6 + σ[1] ^ 8 * cos(θ) ^ 2 + σ[1] ^ 8) * sin(θ) ^ 6 + 8 * xx * cos(θ) * σ[1] ^ 6 * (yy - a) * sin(θ) ^ 5 + σ[1] ^ 2 * (2 * (2 * σ[2] ^ 2 * σ[1] ^ 4 - 3 * σ[2] ^ 4 * σ[1] ^ 2) * cos(θ) ^ 4 - 12 * σ[1] ^ 2 * (σ[2] ^ 2 * xx ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2 / 3) * cos(θ) ^ 2 + xx ^ 4 * tan(θ) ^ 6 * σ[1] ^ 2 - 3 * xx ^ 2 * tan(θ) ^ 4 * σ[1] ^ 4 + 4 * xx ^ 3 * σ[1] ^ 2 * (yy - a) * tan(θ) ^ 3 - 2 * σ[2] ^ 2 * xx ^ 4 * tan(θ) ^ 2 - 6 * xx * σ[1] ^ 4 * (yy - a) * tan(θ) + 6 * σ[1] ^ 2 * ((31 * xx ^ 2 - σ[1] ^ 2) * σ[2] ^ 2 / 6 + (xx ^ 2 - σ[1] ^ 2 / 6) * (yy - a) ^ 2)) * sin(θ) ^ 4 - 8 * σ[1] ^ 2 * (-3 * cos(θ) ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 + (xx ^ 2 + 19//4 * σ[1] ^ 2) * σ[2] ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2 / 2) * (yy - a) * cos(θ) * xx * sin(θ) ^ 3 + (-12 * σ[2] ^ 2 * σ[1] ^ 2 * (σ[2] ^ 2 * xx ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2) * cos(θ) ^ 4 + ((41 * xx ^ 2 * σ[1] ^ 2 + xx ^ 4 + (yy - a) ^ 4) * σ[2] ^ 4 + 12 * (7//12 * σ[1] ^ 2 + xx ^ 2 - (yy - a) ^ 2 / 6) * σ[1] ^ 2 * (yy - a) ^ 2 * σ[2] ^ 2 + σ[1] ^ 4 * (yy - a) ^ 4) * cos(θ) ^ 2 - 2 * xx ^ 3 * σ[1] ^ 4 * (yy - a) * tan(θ) ^ 5 + 4 * xx ^ 4 * tan(θ) ^ 4 * σ[1] ^ 2 * σ[2] ^ 2 + 2 * xx * σ[1] ^ 6 * (yy - a) * tan(θ) ^ 3 - 6 * σ[1] ^ 4 * (7//3 * σ[2] ^ 2 + (yy - a) ^ 2) * xx ^ 2 * tan(θ) ^ 2 + 20 * ((xx ^ 2 + σ[1] ^ 2 / 2) * σ[2] ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2 / 10) * σ[1] ^ 2 * (yy - a) * xx * tan(θ) - 4 * σ[2] ^ 2 * ((xx ^ 4 + 25//4 * xx ^ 2 * σ[1] ^ 2) * σ[2] ^ 2 + 6 * σ[1] ^ 2 * (yy - a) ^ 2 * (xx ^ 2 - σ[1] ^ 2 / 24))) * sin(θ) ^ 2 - 4 * (2 * (-3 * σ[1] ^ 2 * σ[2] ^ 2 + σ[2] ^ 4) * cos(θ) ^ 4 + (-9//2 * σ[2] ^ 4 + (29//2 * σ[1] ^ 2 + (xx + yy - a) * (xx - yy + a)) * σ[2] ^ 2 + 2 * σ[1] ^ 2 * (yy - a) ^ 2) * cos(θ) ^ 2 + (-13 * σ[1] ^ 2 - 7 * xx ^ 2 + 3 * (yy - a) ^ 2) * σ[2] ^ 2 / 2 - 3 * σ[1] ^ 2 * (yy - a) ^ 2) * σ[2] ^ 2 * (yy - a) * cos(θ) * xx * sin(θ) + (4 * σ[1] ^ 2 * σ[2] ^ 6 - σ[2] ^ 8) * cos(θ) ^ 8 - 4 * σ[2] ^ 4 * (-σ[2] ^ 4 / 2 + (2 * σ[1] ^ 2 + (xx + yy - a) * (xx - yy + a)) * σ[2] ^ 2 + 3 * σ[1] ^ 2 * (yy - a) ^ 2) * cos(θ) ^ 6 + 6 * σ[2] ^ 4 * ((σ[1] ^ 2 + 17//3 * xx ^ 2 - 5//3 * (yy - a) ^ 2) * σ[2] ^ 2 / 2 + (xx ^ 2 + 17//6 * σ[1] ^ 2) * (yy - a) ^ 2) * cos(θ) ^ 4 - 18 * σ[2] ^ 4 * (7//9 * σ[2] ^ 2 * xx ^ 2 + (xx ^ 2 + 2//9 * σ[1] ^ 2) * (yy - a) ^ 2) * cos(θ) ^ 2 + 4 * xx * (xx * σ[1] ^ 4 * (yy - a) ^ 2 * tan(θ) ^ 4 / 4 - 5//2 * xx ^ 2 * σ[1] ^ 2 * σ[2] ^ 2 * (yy - a) * tan(θ) ^ 3 + σ[2] ^ 2 * (σ[2] ^ 2 * xx ^ 2 + 2 * σ[1] ^ 2 * (yy - a) ^ 2) * xx * tan(θ) ^ 2 - 3 * σ[2] ^ 2 * (yy - a) * (σ[2] ^ 2 * xx ^ 2 + σ[1] ^ 2 * (yy - a) ^ 2 / 6) * tan(θ) + 13//4 * xx * σ[2] ^ 4 * (yy - a) ^ 2)) * (σ[1] ^ 2 * sin(θ) ^ 2 + σ[2] ^ 2 * cos(θ) ^ 2) ^ (-9//2) * π ^ (-1//2) / 2
 		l+=1;
       end
     end
@@ -305,6 +302,10 @@ end
     return dot(d2phiVect(k,x),y);
   end
 
+  # for i in eachindex(kernel.meshgrid)
+  #   println(kernel.meshgrid[i])
+  # end
+
   # TODO: tester si mesh grid fonctionne
   PhisY=zeros(prod(kernel.nbpointsgrid));
   l=1;
@@ -330,7 +331,7 @@ end
     return(d2c)
   end
 
-  operator_spec_lchirp(typeof(kernel),kernel.dim,kernel.σ,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
+  operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
 end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
