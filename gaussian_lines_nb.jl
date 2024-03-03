@@ -47,15 +47,20 @@ end
 begin
 	# Initial measure
 	N = length(px)*length(py)
-	a0=[1.];
-	x0=[[-12.0, 3*π/10]];
+	a0=[1., .5, .5];
+	x0=[[-12.0, 3*π/10], [60, -pi/12], [35, -pi/12]];
 	# Noise
 	#srand(1);
 	w0=randn(N);
-	sigma_noise=.000;
+	sigma_noise=.001;
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
-	heatmap(reshape(op.phi(x0[1]), (length(px),length(py))))
+	image = zeros((length(px),length(py)))
+	for i in 1:length(a0)
+		image += a0[i]*reshape(op.phi(x0[i]), (length(px),length(py)))
+	end
+	image += reshape(sigma_noise*w0, (length(px),length(py)))
+	heatmap(image)
 	#blasso.plotobservation(op)
 end
 
@@ -85,7 +90,7 @@ result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
 begin
-	println("x0=$(x0[1])")
+	println("x0=$(x0)")
 	sfw.show_result(result, options)
 end
 
