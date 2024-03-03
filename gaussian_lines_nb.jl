@@ -9,8 +9,7 @@ using InteractiveUtils
 begin
 	import Pkg
 	Pkg.activate(".")
-	Pkg.add("SpecialFunctions")
-	Pkg.add("Revise")
+	Pkg.instanciate()
 	using LinearAlgebra, Plots
 end;
 
@@ -29,7 +28,7 @@ md"# Gaussian Lines Kernel"
 # ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
 begin
 	# Model constants
-	sigma=[0.1, 0.1];
+	sigma=[5., 5.];
 	M = 32;
 	K = 2*M+1;
 	px=range(0., K-1);
@@ -56,6 +55,7 @@ begin
 	sigma_noise=.000;
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
+	heatmap(reshape(op.phi(x0[1]), (length(px),length(py))))
 	#blasso.plotobservation(op)
 end
 
@@ -84,11 +84,10 @@ end
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
-# ╠═╡ show_logs = false
-# ╠═╡ disabled = true
-#=╠═╡
-sfw.show_result(result, options)
-  ╠═╡ =#
+begin
+	println("x0=$(x0[1])")
+	sfw.show_result(result, options)
+end
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
 function plotSpikes2D(x0,a0,result, op)
