@@ -23,7 +23,11 @@ begin
 end
 
 # ╔═╡ 5dcf6210-5e2d-4c74-854e-5617749d8b8c
-md"# Gaussian Lines Kernel"
+md"""
+# Gaussian Lines Kernel
+## Well-separated case
+"""
+
 
 # ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
 begin
@@ -59,7 +63,7 @@ begin
 		image += a0[i]*reshape(op.phi(x0[i]), (length(px),length(py)))
 	end
 	image += reshape(sigma_noise*w0, (length(px),length(py)))
-	heatmap(image, aspect_ratio=1)
+	heatmap(image, aspect_ratio=1, cmap=:grays)
 	#blasso.plotobservation(op)
 end
 
@@ -104,6 +108,47 @@ function plotSpikes2D(x0,a0,result, op)
 	scatter!(rec_diracs[:,1], rec_diracs[:,2], label="Recovered Spikes", color=:red, marker=:circle, markerstrokecolor=false, markersize=4)
 end
 
+# ╔═╡ c6b23a87-166e-4fc7-8cd9-a80b26912753
+md"""
+## Closed lines case
+"""
+
+# ╔═╡ 95b38abf-a574-4696-a8e8-4b71cc23a4da
+begin
+	# Initial measure
+	a02=[1., 1.];
+	x02=[[-1, -0.73], [1, -0.75]];
+	# Noise
+	#srand(1);
+	w02=randn(N);
+	sigma_noise2=0.05;
+	# Load operator Phi
+	op2=blasso.setGaussLineOperator(kernel,a02,x02,sigma_noise2*w02);
+	image2 = zeros((length(px),length(py)))
+	for i in 1:length(a02)
+		image2 += a02[i]*reshape(op2.phi(x02[i]), (length(px),length(py)))
+	end
+	image2 += reshape(sigma_noise2*w02, (length(px),length(py)))
+	heatmap(image2, aspect_ratio=1, cmap=:grays)
+	#blasso.plotobservation(op)
+end
+
+# ╔═╡ 6141e714-46df-4f2a-ad8e-969374f7d7a6
+begin
+	lambda2=1.;
+	# Load objective function
+	fobj2=blasso.setfobj(op2,lambda2);
+end
+
+# ╔═╡ 23a093f0-50f4-430a-abed-65119270e541
+result2=sfw.sfw4blasso(fobj2,kernel,op2,options); # Solve problem
+
+# ╔═╡ 6cb65afe-f7d4-48df-975b-2b25a5faac33
+begin
+	println("x0=$(x02)")
+	sfw.show_result(result2, options)
+end
+
 # ╔═╡ Cell order:
 # ╠═c13a86de-cb38-11ee-3890-c93e2ad0f39a
 # ╠═9e13dfd5-078d-49bb-827e-97575a6a42df
@@ -117,3 +162,8 @@ end
 # ╠═01ed0bc2-3c35-4d51-8d31-bb084b592879
 # ╠═3c8fb520-419c-4626-b42c-38c813385179
 # ╟─9f87f847-e175-4029-8870-eeeba7b6cebd
+# ╠═c6b23a87-166e-4fc7-8cd9-a80b26912753
+# ╠═95b38abf-a574-4696-a8e8-4b71cc23a4da
+# ╠═6141e714-46df-4f2a-ad8e-969374f7d7a6
+# ╠═23a093f0-50f4-430a-abed-65119270e541
+# ╠═6cb65afe-f7d4-48df-975b-2b25a5faac33
