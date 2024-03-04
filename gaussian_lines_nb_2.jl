@@ -28,10 +28,9 @@ md"# Gaussian Lines Kernel"
 # ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
 begin
 	# Model constants
-	sigma=[5., 5.];
-	M = 32;
-	K = 2*M+1;
-	px=range(0., K-1);
+	sigma=[1., 1.];
+	M = 32.;
+	px=range(-M, M);
 	px=collect(px);
 	py=px;
 	angle_max = π/3;
@@ -48,11 +47,11 @@ begin
 	# Initial measure
 	N = length(px)*length(py)
 	a0=[1., 1., 1.];
-	x0=[[-12.0, 3*π/10], [117, -7*pi/16], [104, -pi/3]];
+	x0=[[0, -π/5], [-15, pi/16], [10, pi/6]];
 	# Noise
 	#srand(1);
 	w0=randn(N);
-	sigma_noise=.001;
+	sigma_noise=0.1;
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
 	image = zeros((length(px),length(py)))
@@ -72,7 +71,7 @@ plotSpikes2D(x0,a0, result, op)
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=0.005;
+	lambda=1.;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
@@ -85,19 +84,13 @@ end
 #end
 
 # ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
-# ╠═╡ show_logs = false
-# ╠═╡ disabled = true
-#=╠═╡
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
-  ╠═╡ =#
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
-#=╠═╡
 begin
 	println("x0=$(x0)")
 	sfw.show_result(result, options)
 end
-  ╠═╡ =#
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
 function plotSpikes2D(x0,a0,result, op)
