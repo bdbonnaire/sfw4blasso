@@ -47,8 +47,8 @@ end
 begin
 	# Initial measure
 	N = length(px)*length(py)
-	a0=[1., .5, .5];
-	x0=[[-12.0, 3*π/10], [60, -pi/12], [35, -pi/12]];
+	a0=[1., 1., 1.];
+	x0=[[-12.0, 3*π/10], [117, -7*pi/16], [104, -pi/3]];
 	# Noise
 	#srand(1);
 	w0=randn(N);
@@ -60,7 +60,7 @@ begin
 		image += a0[i]*reshape(op.phi(x0[i]), (length(px),length(py)))
 	end
 	image += reshape(sigma_noise*w0, (length(px),length(py)))
-	heatmap(image)
+	heatmap(image, aspect_ratio=1)
 	#blasso.plotobservation(op)
 end
 
@@ -86,13 +86,18 @@ end
 
 # ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
 # ╠═╡ show_logs = false
+# ╠═╡ disabled = true
+#=╠═╡
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
+  ╠═╡ =#
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
+#=╠═╡
 begin
 	println("x0=$(x0)")
 	sfw.show_result(result, options)
 end
+  ╠═╡ =#
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
 function plotSpikes2D(x0,a0,result, op)
