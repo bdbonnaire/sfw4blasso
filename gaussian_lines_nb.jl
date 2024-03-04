@@ -85,7 +85,6 @@ end
 #end
 
 # ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
-# ╠═╡ show_logs = false
 result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
