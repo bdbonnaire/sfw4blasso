@@ -187,11 +187,27 @@ result3=sfw.sfw4blasso(fobj3,kernel,op3,options); # Solve problem
 # ╔═╡ e3c5156a-0b35-40a8-939a-749626981446
 begin
 	a_est,x_est=blasso.decompAmpPos(result3.u,d=op3.dim);
+	println(x_est[7])
+	a_est = a_est[1:end-1]
+	x_est = x_est[1:end-1]
+	a_est_ord, x_est_ord = blasso.spikesPair(x03, x_est, a_est, op3.dim)
 	println("a0=$(a03)")
-	println("a0_est=$(a_est)")
+	println("a0_est=$(a_est_ord)")
 	println("x0=$(x03)")
-	println("x0_est=$(x_est)")
-	sfw.show_result(result3, options)
+	println("x0_est=$(x_est_ord)")
+	matx = stack(x03)
+	offsets = matx[1,:]
+	angles = matx[2,:]
+	matx_est = stack(x_est_ord)
+	offsets_est = matx_est[1,:]
+	angles_est = matx_est[2,:]
+	amp_error = (a_est_ord .- a03) ./ a03;
+	offset_error = offsets .- offsets_est;
+	angle_error = angles .- angles_est;
+	println("amp_error=$(amp_error)")
+	println("offset_error=$(offset_error)")
+	println("angle_error=$(angle_error)")
+	# sfw.show_result(result3, options)
 end
 
 # ╔═╡ Cell order:
