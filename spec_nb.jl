@@ -17,7 +17,7 @@ end;
 
 # ╔═╡ bb6f403c-0897-4903-be58-8cd320f83d17
 begin 
-	#using Revise
+	using Revise
 	using blasso, sfw, certificate, toolbox
 end
 
@@ -43,23 +43,28 @@ begin
 	println(typeof(kernel))
 end
 
-# ╔═╡ b4aea33e-6012-44b5-90ee-960e476382bd
+# ╔═╡ d71103a1-8e24-48b5-b6cd-9e9cf7a734a3
 begin
 	# Initial measure
-	a_0=[1.];
-	x_0=[[100, pi/2 * .8]]
+	a0=[1.];
+	x0=[[.1, 0.]]
 	# Noise
 	#srand(1);
 	w0=randn(N^2);
 	sigma=.00;
 	#print(typeof(w0*sigma))
 	# Load operator Phi
-	op=blasso.setSpecOperator(kernel, a_0,x_0,sigma*w0);
-	image = zeros(N,N)
-	for i in 1:length(a_0)
-		image += reshape(a_0[i] * op.phi(x_0[i]), (N,N))
+	op=blasso.setSpecOperator(kernel, a0,x0,sigma*w0);
+	println(typeof(op))
+end
+
+# ╔═╡ 3d43a392-db29-4f4c-ba69-3d17d4978155
+begin
+	local image = zeros(N,N)
+	for i in 1:length(a0)
+		image += reshape(a0[i] * op.phi(x0[i]), (N,N))
 	end
-	#image .+= reshape(sigma.*w0, (N,N))
+	image .+= reshape(sigma.*w0, (N,N))
 	heatmap(image)
 	#blasso.plotobservation(op)
 end
@@ -97,7 +102,10 @@ end
 result=sfw.sfw4blasso(fobj,kernel,op,options) # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
-sfw.show_result(result, options)
+begin
+	println(x0)
+	sfw.show_result(result, options)
+end
 
 # ╔═╡ 959b2184-787b-465e-9d1c-178510d9ea21
 println(x_0)
@@ -120,7 +128,8 @@ end
 # ╠═bb6f403c-0897-4903-be58-8cd320f83d17
 # ╟─5dcf6210-5e2d-4c74-854e-5617749d8b8c
 # ╠═21f334a4-ef50-4e84-82c6-1d75a485d6b5
-# ╠═b4aea33e-6012-44b5-90ee-960e476382bd
+# ╠═d71103a1-8e24-48b5-b6cd-9e9cf7a734a3
+# ╠═3d43a392-db29-4f4c-ba69-3d17d4978155
 # ╠═c468d81f-bfbc-4934-8518-58efcc551f72
 # ╠═436b02fb-2b8b-4e66-93ca-e344ecd90df0
 # ╠═67884e0d-db4a-4a6a-ace9-ec88efe65d14

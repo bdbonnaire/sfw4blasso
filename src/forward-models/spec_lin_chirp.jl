@@ -16,7 +16,7 @@ mutable struct spec_lchirp <: discrete
   bounds::Array{Array{Float64,1},1}
 end
 
-""" setspecKernel(pt, pω, Dpt, Dpω, σ, angle_min, angle_max)
+""" setspecKernel(pt, pω, Dpt, Dpω, sigma, angle_min, angle_max)
 Sets the kernel structure `spec_lchirp` corresponding to φ: X -> H in the sfw4blasso paper.
 
 In our case, X=[η_min, η_max]x[θ_min, θ_max] where 
@@ -33,7 +33,7 @@ In our case, X=[η_min, η_max]x[θ_min, θ_max] where
 - angle_min, angle_max : Float64
 	min and max values for the angle. [angle_min, angle_max] must be included in [-π/2, π/2).
 """
-function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,Dpω::Float64, σ::Float64, angle_min::Float64, angle_max::Float64)
+function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,Dpω::Float64, sigma::Float64, angle_min::Float64, angle_max::Float64)
 
   dim=2;
   # Sampling of the Kernel
@@ -51,16 +51,17 @@ function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,D
   θ_min = angle_min
   θ_max = angle_max
   η_min = -tan(θ_max)
-  η_max = Npω - tan(θ_min)
+  η_max = 1 - tan(θ_min)
   bounds = [[η_min, θ_min], [η_max, θ_max]]
   println("ηmin = $η_min et ηmax = $η_max")
   println("θmin = $θ_min et θmax = $θ_max")
   ## Computing the grid
-  freq_coeff = .04
+  freq_coeff = .004
   angle_coeff = .02
   # makes the number of parameter grid samples proportional to the span of [ηmin, ηmax] and [θmin, θmax] resp.
-  nb_points_param_grid = [ abs(η_min - η_max)*freq_coeff, Npt* abs(θ_min - θ_max) * angle_coeff] .|> ceil
-  println(nb_points_param_grid)
+  nb_points_param_grid = [ Npω * abs(η_min - η_max)*freq_coeff, 
+						  Npt* abs(θ_min - θ_max) * angle_coeff] .|> ceil
+  println("TEST : Number of points on the grid : $nb_points_param_grid")
   nb_points_param_grid = convert(Vector{Int64}, nb_points_param_grid)
   # buiding the grid
   g=Array{Array{Float64,1}}(undef,dim);
@@ -72,7 +73,7 @@ function setSpecKernel(pt::Array{Float64,1},pω::Array{Float64,1},Dpt::Float64,D
   mg1 = ones(length(g[2])) * g[1]'
   mg2 = g[2] * ones(length(g[1]))'
   meshgrid = vcat.(mg1,mg2)
-  return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, meshgrid, σ, bounds)
+  return spec_lchirp(dim, pt, pω, p, Npt, Npω, Dpt, Dpω, nb_points_param_grid, g, meshgrid, sigma, bounds)
 end
 
 mutable struct operator_spec_lchirp <: operator
@@ -106,22 +107,26 @@ end
 function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
 
 	"""phiVect(x)
-	Given the parameters x=(η, θ), computes the associated spectrogram line
+	Given the parameters x=(ηv, θv), computes the associated spectrogram line.
+
+	ηv and θv are the "visual" arguments, that is those when we consider our observation
+	to be on a window of [0,1]x[0,1]. In reality the frequencies are on [0,kernel.Npω-1]
 	"""
   function phiVect(x::Array{Float64,1})
+	# x is of the form (ηv, θv)
     v=zeros(kernel.Npt*kernel.Npω);
 	# index for the loop
     local l=1; 
 	local η = x[1]
 	local θ = x[2]
-	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		  ω=kernel.pω[i]
 		  t=kernel.pt[j]
-		  v[l]= σ * (1 + σ ^ 4 * c ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
+		  v[l]= σ * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η * N - tan(θ) * N * t) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2))
         l+=1;
       end
     end
@@ -136,12 +141,14 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-		v[l]=  4 * σ ^ 3 * (1 + σ ^ 4 * c ^ 2) ^ (-3//2) * pi * (ω - η - c * t) * exp(-2 * pi * σ ^ 2 * (ω - η - c * t) ^ 2 / (1 + σ ^ 4 * c ^ 2))
+		v[l]= 4 * σ ^ 3 * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-3//2) * pi * (ω - η * N - tan(θ) * N * t) * N * exp(-2 * pi * σ ^ 2 * (ω - η * N - tan(θ) * N * t) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2))
+		
 		l+=1;
       end
     end
@@ -156,12 +163,13 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-		v[l] = -(c ^ 3 * σ ^ 6 - 4 * t * pi * σ ^ 4 * (η - ω) * c ^ 2 + (-4 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 + 4 * pi * t ^ 2) * c + 4 * t * pi * (η - ω)) * (1 + c ^ 2) * σ ^ 3 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+v[l] = -N * (1 + c ^ 2) * exp(-2 * pi * σ ^ 2 * (c * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2 * N ^ 2)) * (N ^ 3 * c ^ 3 * σ ^ 6 - 4 * t * N ^ 2 * pi * σ ^ 4 * (η * N - ω) * c ^ 2 + 4 * N * (-N ^ 2 * pi * η ^ 2 * σ ^ 4 + 2 * N * pi * η * ω * σ ^ 4 - pi * ω ^ 2 * σ ^ 4 + pi * t ^ 2 + σ ^ 2 / 4) * c + 4 * t * pi * (η * N - ω)) * σ ^ 3 * (1 + σ ^ 4 * c ^ 2 * N ^ 2) ^ (-5//2)
 		l+=1;
       end
     end
@@ -177,12 +185,13 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-		v[l] = 4 * (1 + c ^ 2) * pi * σ ^ 3 * (2 * c ^ 4 * σ ^ 8 * t - 4 * (η - ω) * σ ^ 6 * (pi * t ^ 2 - 3//4 * σ ^ 2) * c ^ 3 + 4 * (-2 * pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * σ ^ 2 * t * c ^ 2 + 8 * (η - ω) * σ ^ 2 * (-pi * (η - ω) ^ 2 * σ ^ 4 / 2 + 3//8 * σ ^ 2 + pi * t ^ 2) * c + 4 * (-1//4 + pi * (η - ω) ^ 2 * σ ^ 2) * t) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-7//2)
+		v[l] = 4 * N ^ 2 * (1 + tan(θ) ^ 2) * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2)) * pi * σ ^ 3 * (2 * N ^ 4 * tan(θ) ^ 4 * σ ^ 8 * t - 4 * (pi * t ^ 2 - 3//4 * σ ^ 2) * N ^ 3 * (η * N - ω) * σ ^ 6 * tan(θ) ^ 3 + 4 * N ^ 2 * (-2 * pi * (η * N - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * σ ^ 2 * t * tan(θ) ^ 2 + 8 * N * (-pi * (η * N - ω) ^ 2 * σ ^ 4 / 2 + 3//8 * σ ^ 2 + pi * t ^ 2) * (η * N - ω) * σ ^ 2 * tan(θ) + 4 * (-1//4 + pi * (η * N - ω) ^ 2 * σ ^ 2) * t) * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-7//2)
 		l+=1;
       end
     end
@@ -209,15 +218,16 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-		v[l] = 4 * pi * σ ^ 3 * ((4 * pi * σ ^ 2 * t ^ 2 - σ ^ 4) * c ^ 2 + 8 * t * pi * σ ^ 2 * (η - ω) * c - 1 + 4 * pi * (η - ω) ^ 2 * σ ^ 2) * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-5//2)
+		v[l] =4 * N ^ 2 * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2)) * pi * ((4 * pi * σ ^ 2 * N ^ 2 * t ^ 2 - σ ^ 4 * N ^ 2) * tan(θ) ^ 2 + 8 * t * N * pi * σ ^ 2 * (η * N - ω) * tan(θ) - 1 + 4 * pi * (η * N - ω) ^ 2 * σ ^ 2) * σ ^ 3 * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-5//2)
 		l+=1;
       end
-    end
+  end
     return v;
   end
 
@@ -229,12 +239,15 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
 	local θ = x[2]
 	local c = tan(θ)
 	local σ = kernel.σ
+	local N = kernel.Npω
 	
+	local d1φθtemp = d1φθ(x)
+	d1φθtemp /= kernel.Npω / (cos(x[2])^2 + kernel.Npω * sin(x[2])^2)
     for j in 1:kernel.Npt
       for i in 1:kernel.Npω
 		ω=kernel.pω[i]
 		t=kernel.pt[j]
-		v[l] =16 * (cos(θ) * sin(θ) ^ 6 * σ ^ 14 / 8 - pi * σ ^ 12 * t * (cos(θ) ^ 2 + 1) * (η - ω) * sin(θ) ^ 5 / 2 + ((-3//4 - pi * (η - ω) ^ 2 * σ ^ 6 + 3//4 * σ ^ 4 + pi * σ ^ 2 * t ^ 2) * cos(θ) ^ 2 / 2 + σ ^ 2 * (-3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 + 3//4 * pi * t ^ 2)) * cos(θ) * σ ^ 6 * sin(θ) ^ 4 - 2 * pi * (η - ω) * cos(θ) ^ 2 * σ ^ 6 * (σ ^ 2 * cos(θ) ^ 2 / 4 - pi * (η - ω) ^ 2 * σ ^ 4 - 3//4 * σ ^ 2 + pi * t ^ 2) * t * sin(θ) ^ 3 + pi * ((-(η - ω) ^ 2 * σ ^ 6 + t ^ 2 * σ ^ 2) * cos(θ) ^ 2 + pi * ((η - ω) ^ 4 * σ ^ 8 - 4 * t ^ 2 * (η - ω) ^ 2 * σ ^ 4 + t ^ 4)) * cos(θ) ^ 3 * σ ^ 2 * sin(θ) ^ 2 + 2 * pi * (η - ω) * cos(θ) ^ 4 * ((σ ^ 4 - 1) * cos(θ) ^ 2 / 4 + (-pi * (η - ω) ^ 2 * σ ^ 4 + 3//4 * σ ^ 2 + pi * t ^ 2) * σ ^ 2) * t * sin(θ) + ((-pi * (η - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * cos(θ) ^ 2 / 2 + 3//4 * pi * (η - ω) ^ 2 * σ ^ 4 + (-3//16 + t ^ 2 * (η - ω) ^ 2 * pi ^ 2) * σ ^ 2 - 3//4 * pi * t ^ 2) * cos(θ) ^ 5) * σ ^ 3 * 0.1e1 / cos(θ) ^ 9 * exp(-2 * pi * σ ^ 2 * (c * t + η - ω) ^ 2 / (1 + σ ^ 4 * c ^ 2)) * (1 + σ ^ 4 * c ^ 2) ^ (-9//2) 
+		v[l] =16 * N * exp(-2 * pi * σ ^ 2 * (tan(θ) * N * t + η * N - ω) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2)) * σ ^ 3 * (N ^ 7 * sin(θ) ^ 6 * σ ^ 14 * cos(θ) / 8 - N ^ 6 * pi * σ ^ 12 * t * (cos(θ) ^ 2 + 1) * (η * N - ω) * sin(θ) ^ 5 / 2 + N ^ 3 * ((-3//4 - N ^ 2 * pi * (η * N - ω) ^ 2 * σ ^ 6 + 3//4 * σ ^ 4 * N ^ 2 + pi * σ ^ 2 * N ^ 2 * t ^ 2) * cos(θ) ^ 2 / 2 + N ^ 2 * (-3//4 * pi * (η * N - ω) ^ 2 * σ ^ 4 + (-3//16 + pi ^ 2 * ω ^ 2 * t ^ 2 + N ^ 2 * pi ^ 2 * η ^ 2 * t ^ 2 - 2 * N * pi ^ 2 * η * ω * t ^ 2) * σ ^ 2 + 3//4 * pi * t ^ 2) * σ ^ 2) * σ ^ 6 * cos(θ) * sin(θ) ^ 4 - 2 * N ^ 4 * (σ ^ 2 * cos(θ) ^ 2 / 4 - pi * (η * N - ω) ^ 2 * σ ^ 4 - 3//4 * σ ^ 2 + pi * t ^ 2) * pi * (η * N - ω) * σ ^ 6 * cos(θ) ^ 2 * t * sin(θ) ^ 3 + N ^ 3 * pi * ((-(η * N - ω) ^ 2 * σ ^ 6 + t ^ 2 * σ ^ 2) * cos(θ) ^ 2 + pi * ((η * N - ω) ^ 4 * σ ^ 8 - 4 * t ^ 2 * (η * N - ω) ^ 2 * σ ^ 4 + t ^ 4)) * σ ^ 2 * cos(θ) ^ 3 * sin(θ) ^ 2 + 2 * pi * ((σ ^ 4 * N ^ 2 - 1) * cos(θ) ^ 2 / 4 + N ^ 2 * (-pi * (η * N - ω) ^ 2 * σ ^ 4 + 3//4 * σ ^ 2 + pi * t ^ 2) * σ ^ 2) * (η * N - ω) * cos(θ) ^ 4 * t * sin(θ) + N * ((-pi * (η * N - ω) ^ 2 * σ ^ 4 + σ ^ 2 / 4 + pi * t ^ 2) * cos(θ) ^ 2 / 2 + 3//4 * pi * (η * N - ω) ^ 2 * σ ^ 4 + (-3//16 + pi ^ 2 * ω ^ 2 * t ^ 2 + N ^ 2 * pi ^ 2 * η ^ 2 * t ^ 2 - 2 * N * pi ^ 2 * η * ω * t ^ 2) * σ ^ 2 - 3//4 * pi * t ^ 2) * cos(θ) ^ 5) * 0.1e1 / cos(θ) ^ 9 * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-9//2)
 		l+=1;
       end
     end
