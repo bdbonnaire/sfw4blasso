@@ -149,6 +149,51 @@ begin
 	sfw.show_result(result2, options)
 end
 
+# ╔═╡ 41f526a1-ee53-49f6-b308-9f051fc1a255
+md"""
+## Multiple lines case
+"""
+
+# ╔═╡ 76cb3f79-5a4a-4397-a254-2c676855ac26
+begin
+	# Initial measure
+	a03=[60, 80, 255, 100, 180, 120, 240]/255;
+	x03=[[15, -0.75], [25, -0.5], [2, -0.25], [7, 0.001], [-20, 0.3], [-5, 0.55], [-10, 0.75]];
+	# Noise
+	#srand(1);
+	w03=randn(N);
+	sigma_noise3=0.05;
+	# Load operator Phi
+	op3=blasso.setGaussLineOperator(kernel,a03,x03,sigma_noise3*w03);
+	image3 = zeros((length(px),length(py)))
+	for i in 1:length(a03)
+		image3 += a03[i]*reshape(op3.phi(x03[i]), (length(px),length(py)))
+	end
+	image3 += reshape(sigma_noise3*w03, (length(px),length(py)))
+	heatmap(image3, aspect_ratio=1, cmap=:grays)
+	#blasso.plotobservation(op)
+end
+
+# ╔═╡ a3e79a91-fd7d-4ac0-8519-4cc0e634a276
+begin
+	lambda3=1.;
+	# Load objective function
+	fobj3=blasso.setfobj(op3,lambda3);
+end
+
+# ╔═╡ ec4ec66b-7354-42e0-841f-de947dfd0f31
+result3=sfw.sfw4blasso(fobj3,kernel,op3,options); # Solve problem
+
+# ╔═╡ e3c5156a-0b35-40a8-939a-749626981446
+begin
+	a_est,x_est=blasso.decompAmpPos(result3.u,d=op3.dim);
+	println("a0=$(a03)")
+	println("a0_est=$(a_est)")
+	println("x0=$(x03)")
+	println("x0_est=$(x_est)")
+	sfw.show_result(result3, options)
+end
+
 # ╔═╡ Cell order:
 # ╠═c13a86de-cb38-11ee-3890-c93e2ad0f39a
 # ╠═9e13dfd5-078d-49bb-827e-97575a6a42df
@@ -167,3 +212,8 @@ end
 # ╠═6141e714-46df-4f2a-ad8e-969374f7d7a6
 # ╠═23a093f0-50f4-430a-abed-65119270e541
 # ╠═6cb65afe-f7d4-48df-975b-2b25a5faac33
+# ╠═41f526a1-ee53-49f6-b308-9f051fc1a255
+# ╠═76cb3f79-5a4a-4397-a254-2c676855ac26
+# ╠═a3e79a91-fd7d-4ac0-8519-4cc0e634a276
+# ╠═ec4ec66b-7354-42e0-841f-de947dfd0f31
+# ╠═e3c5156a-0b35-40a8-939a-749626981446
