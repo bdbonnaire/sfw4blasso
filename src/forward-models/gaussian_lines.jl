@@ -48,19 +48,14 @@ function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1}, sigma::A
   ## Computing the bounds of X
   θ_min = angle_min
   θ_max = angle_max
-  a_min = -Npx*tan(θ_max)
-  a_max = Npy - Npx*tan(θ_min)
+  a_min = -Npx/2 + Npy/2*tan(θ_min)
+  a_max = Npx/2 + Npy/2*tan(θ_max)
   bounds = [[a_min, θ_min], [a_max, θ_max]] # bound of the parameter space, not the image
   println("amin = $a_min et amax = $a_max")
   println("θmin = $θ_min et θmax = $θ_max")
   ## Computing the grid
-  freq_coeff = .004
-  angle_coeff = .02
-  # makes the number of parameter grid samples proportional to the span of [amin, amax] and [θmin, θmax] resp.
-  nb_points_param_grid = [ Npy * abs(a_min - a_max)*freq_coeff, # Q°: check
-						  Npx* abs(θ_min - θ_max) * angle_coeff] .|> ceil
+  nb_points_param_grid = [30, 30]
   println("TEST : Number of points on the grid : $nb_points_param_grid")
-  nb_points_param_grid = convert(Vector{Int64}, nb_points_param_grid)
   # buiding the grid
   g=Array{Array{Float64,1}}(undef,dim);
   a,b=bounds[1],bounds[2];

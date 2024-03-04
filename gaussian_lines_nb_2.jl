@@ -28,7 +28,7 @@ md"# Gaussian Lines Kernel"
 # ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
 begin
 	# Model constants
-	sigma=[2., 2.];
+	sigma=[1., 1.];
 	M = 32.;
 	px=range(-M, M);
 	px=collect(px);
@@ -51,7 +51,7 @@ begin
 	# Noise
 	#srand(1);
 	w0=randn(N);
-	sigma_noise=.01;
+	sigma_noise=0.1;
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
 	image = zeros((length(px),length(py)))
