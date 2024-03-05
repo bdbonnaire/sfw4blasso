@@ -1232,6 +1232,30 @@ function decompAmpPos(u::Array{Float64,1};d::Int64=1)
     return a,x
 end
 
+function spikesPair(x::Array{Array{Float64,1},1}, x_est::Array{Array{Float64,1},1}, a_est::Array{Float64,1}, d::Int64=2)
+  # We need to pair the spikes between the true solution x and the estimate u based on their Euclidian distances
+  N=length(x_est);
+  a_est_ordered = Array{Float64,1}(undef,N)
+  x_est_ordered = Array{Array{Float64,1},1}(undef,N)
+  Mdist = zeros(N,N);
+  for i in 1:N
+    spike_current = x[i];
+    dist_min = Inf;
+    ind = 1;
+    for j in 1:N
+      Mdist[i,j] = norm(spike_current-x_est[j])
+      if Mdist[i,j] < dist_min 
+        dist_min = Mdist[i,j];
+        ind = j;
+      end
+    end
+    x_est_ordered[i] = x_est[ind];
+    a_est_ordered[i] = a_est[ind];
+  end
+
+  return a_est_ordered, x_est_ordered
+end
+
 function poisson(lambda::Float64)
     # Generate a random variable following
     # Poisson distribution of parameter lambda
