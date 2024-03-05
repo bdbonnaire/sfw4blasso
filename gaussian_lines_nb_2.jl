@@ -55,7 +55,7 @@ begin
 	# Noise
 	#srand(1);
 	w0=randn(N);
-	sigma_noise=0.1;
+	sigma_noise=0.31;
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
 	image = zeros((length(px),length(py)))
@@ -75,7 +75,7 @@ plotSpikes2D(x0,a0, result, op)
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=1.;
+	lambda=10.;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
@@ -94,6 +94,12 @@ result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 begin
 	println("x0=$(x0)")
 	sfw.show_result(result, options)
+end
+
+# ╔═╡ fbb54e97-dc79-4bc3-bf8e-a33c10800762
+begin
+	a_est,x_est=blasso.decompAmpPos(result.u,d=op.dim);
+	blasso.computeErrors(x0, a0, x_est, a_est);
 end
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
@@ -121,7 +127,7 @@ begin
 	# Noise
 	#srand(1);
 	w02=randn(N);
-	sigma_noise2=0.05;
+	sigma_noise2=0.031; # equivalent for max 255 to randn()*noiselevel with noiselevel=20
 	# Load operator Phi
 	op2=blasso.setGaussLineOperator(kernel,a02,x02,sigma_noise2*w02);
 	image2 = zeros((length(px),length(py)))
@@ -135,7 +141,7 @@ end
 
 # ╔═╡ 6141e714-46df-4f2a-ad8e-969374f7d7a6
 begin
-	lambda2=1.;
+	lambda2=0.5;
 	# Load objective function
 	fobj2=blasso.setfobj(op2,lambda2);
 end
@@ -147,6 +153,12 @@ result2=sfw.sfw4blasso(fobj2,kernel,op2,options); # Solve problem
 begin
 	println("x0=$(x02)")
 	sfw.show_result(result2, options)
+end
+
+# ╔═╡ 7c1bee1e-c0b0-4304-ae2b-96e195979e4f
+begin
+	a_est2,x_est2=blasso.decompAmpPos(result2.u,d=op2.dim);
+	blasso.computeErrors(x02, a02, x_est2, a_est2);
 end
 
 # ╔═╡ 41f526a1-ee53-49f6-b308-9f051fc1a255
@@ -162,7 +174,7 @@ begin
 	# Noise
 	#srand(1);
 	w03=randn(N);
-	sigma_noise3=0.05;
+	sigma_noise3=0.031; # equivalent for max 255 to randn()*noiselevel with noiselevel=20
 	# Load operator Phi
 	op3=blasso.setGaussLineOperator(kernel,a03,x03,sigma_noise3*w03);
 	image3 = zeros((length(px),length(py)))
@@ -185,29 +197,22 @@ end
 result3=sfw.sfw4blasso(fobj3,kernel,op3,options); # Solve problem
 
 # ╔═╡ e3c5156a-0b35-40a8-939a-749626981446
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	a_est,x_est=blasso.decompAmpPos(result3.u,d=op3.dim);
-	println(x_est[7])
-	a_est = a_est[1:end-1]
-	x_est = x_est[1:end-1]
-	a_est_ord, x_est_ord = blasso.spikesPair(x03, x_est, a_est, op3.dim)
-	println("a0=$(a03)")
-	println("a0_est=$(a_est_ord)")
-	println("x0=$(x03)")
-	println("x0_est=$(x_est_ord)")
-	matx = stack(x03)
-	offsets = matx[1,:]
-	angles = matx[2,:]
-	matx_est = stack(x_est_ord)
-	offsets_est = matx_est[1,:]
-	angles_est = matx_est[2,:]
-	amp_error = (a_est_ord .- a03) ./ a03;
-	offset_error = offsets .- offsets_est;
-	angle_error = angles .- angles_est;
-	println("amp_error=$(amp_error)")
-	println("offset_error=$(offset_error)")
-	println("angle_error=$(angle_error)")
+	println(x_est[7]);
+	a_est = a_est[1:end-1];
+	x_est = x_est[1:end-1];
+	op3.computeErrors(x03, a03, x_est, a_est);
 	# sfw.show_result(result3, options)
+end
+  ╠═╡ =#
+
+# ╔═╡ 6f4a51c3-9447-4c4f-a80b-2d98d3d51b73
+begin
+	a_est3,x_est3=blasso.decompAmpPos(result3.u,d=op3.dim);
+	blasso.computeErrors(x03, a03, x_est3, a_est3);
 end
 
 # ╔═╡ Cell order:
@@ -222,14 +227,17 @@ end
 # ╠═67884e0d-db4a-4a6a-ace9-ec88efe65d14
 # ╠═01ed0bc2-3c35-4d51-8d31-bb084b592879
 # ╠═3c8fb520-419c-4626-b42c-38c813385179
+# ╠═fbb54e97-dc79-4bc3-bf8e-a33c10800762
 # ╟─9f87f847-e175-4029-8870-eeeba7b6cebd
 # ╠═c6b23a87-166e-4fc7-8cd9-a80b26912753
 # ╠═95b38abf-a574-4696-a8e8-4b71cc23a4da
 # ╠═6141e714-46df-4f2a-ad8e-969374f7d7a6
 # ╠═23a093f0-50f4-430a-abed-65119270e541
 # ╠═6cb65afe-f7d4-48df-975b-2b25a5faac33
+# ╠═7c1bee1e-c0b0-4304-ae2b-96e195979e4f
 # ╠═41f526a1-ee53-49f6-b308-9f051fc1a255
 # ╠═76cb3f79-5a4a-4397-a254-2c676855ac26
 # ╠═a3e79a91-fd7d-4ac0-8519-4cc0e634a276
 # ╠═ec4ec66b-7354-42e0-841f-de947dfd0f31
 # ╠═e3c5156a-0b35-40a8-939a-749626981446
+# ╠═6f4a51c3-9447-4c4f-a80b-2d98d3d51b73

@@ -1232,7 +1232,7 @@ function decompAmpPos(u::Array{Float64,1};d::Int64=1)
     return a,x
 end
 
-function spikesPair(x::Array{Array{Float64,1},1}, x_est::Array{Array{Float64,1},1}, a_est::Array{Float64,1}, d::Int64=2)
+function spikesPair(x::Array{Array{Float64,1},1}, x_est::Array{Array{Float64,1},1}, a_est::Array{Float64,1})
   # We need to pair the spikes between the true solution x and the estimate u based on their Euclidian distances
   N=length(x_est);
   a_est_ordered = Array{Float64,1}(undef,N)
