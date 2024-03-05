@@ -374,3 +374,73 @@ function setbounds(op::blasso.operator_gaussLines,positivity::Bool=true,ampbound
     return x_low,x_up
   end
 end
+
+function plotResult_GaussianLines(x0, a0, w, result, kernel, op)
+	rec_amps, rec_diracs = blasso.decompAmpPos(result.u, d=2)
+	max_amp = maximum(rec_amps)
+	x = kernel.px
+	y = kernel.py
+	Npx = kernel.Npx
+	Npy = kernel.Npy
+
+	p_lines = plot()
+	image_in = zeros(Npx, Npy)
+	for i in 1:length(a0)
+		image_in += a0[i]*reshape(op.phi(x0[i]), (Npx,Npy))
+	end
+	image_in += reshape(w, (Npx,Npy))
+	heatmap!(x,y,image_in, c=:grays, ratio=1)
+
+	## Line Plotting
+	# Plot the ground truth 
+	for i in 1:length(a0)
+		local yt = - tan( π/2 - x0[i][2] ) * ( x .- x0[i][1]);
+		plot!(x, yt, lw=5, c=:black, label="Ground Truth")
+	end
+	# Plot the reocovered lines
+	for i in 1:length(rec_amps)
+		local y = - tan( π/2 - rec_diracs[i][2] ) * ( x .- rec_diracs[i][1]);
+
+		local color = RGBA(1.,0.,0.,
+			max(rec_amps[i]/max_amp,.4))
+		plot!(x, y, lw=1.5, c=color, label="Recovered")
+	end
+	plot!(ylim=[y[1], y[end]],
+		legend=:none, 
+		cbar=:none, 
+		framestyle=:none,
+		title="Lines",
+		titlefontsize=22)
+
+	## Parameter Space Plot
+	p_parameterSpace = plot();
+	x0_s = stack(x0)
+	rec_dirac_s = stack(rec_diracs)
+	scatter!(x0_s[1,:], x0_s[2,:], 
+		markersize=15, 
+		c=:black, 
+		label="Ground Truth")	
+	scatter!(rec_dirac_s[1,:], rec_dirac_s[2,:],
+		markersize=6,
+		c=RGBA.(1.,0.,0.,max.(rec_amps./max_amp,0.5)),
+		label="Recovered")
+	
+	plot!(title="Spikes in the Parameter Space",
+		titlefontsize=20,
+		xlabel=L"$a$",
+		ylabel=L"$\theta$",
+		ylimit=[-pi/2, pi/2],
+		#yticks=((-4:4)*pi/8,[L"-\frac{\pi}{2}", L"-\frac{3\pi}{8}", L"-\frac{\pi}{4}", L"-\frac{\pi}{8}", L"0", L"\frac{\pi}{8}",L"\frac{\pi}{4}",L"\frac{3\pi}{8}",L"\frac{\pi}{2}"]),
+		yticks=((-2:2)*pi/4,[L"-\frac{\pi}{2}", L"-\frac{\pi}{4}", L"0",L"\frac{\pi}{4}",L"\frac{\pi}{2}"]),
+		labelfontsize=18,
+		xtickfontsize=14,
+		ytickfontsize=18,
+		yguidefontrotation=.9,
+		legendfontsize=12,
+		minorgrid=true,
+		minorticks=2,
+		framestyle=:box)
+
+	plot(p_lines, p_parameterSpace)
+	plot!(sizes=(1000,500))
+end
