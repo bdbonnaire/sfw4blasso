@@ -44,7 +44,6 @@ function setGaussLinesKernel(px::Array{Float64,1},py::Array{Float64,1}, sigma::A
   end
 
   # Sampling of the parameter space X
-  #		TODO: Generalize. This is only verified when considering a signal sampled over 1s. Otherwise the found a might not correlate with frequencies
   ## Computing the bounds of X
   θ_min = angle_min
   θ_max = angle_max
