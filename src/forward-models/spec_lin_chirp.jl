@@ -104,10 +104,12 @@ mutable struct operator_spec_lchirp <: operator
   d2correl::Function
 end
 
-function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+function setSpecOperator(kernel::spec_lchirp, y::Array{Float64,1})
+
+  normObs=.5*norm(y)^2;
 
 	"""phiVect(x)
-	Given the parameters x=(ηv, θv), computes the associated spectrogram line.
+	Given the parameters x=(ηv, θv), computes the associated spectrogram line vectorized.
 
 	ηv and θv are the "visual" arguments, that is those when we consider our observation
 	to be on a window of [0,1]x[0,1]. In reality the frequencies are on [0,kernel.Npω-1]
@@ -299,10 +301,6 @@ end
     return dot(phiVect(x1),d2phiVect(i,x2));
   end
 
-
-  y=sum([a0[i]*phiVect(x0[i]) for i in 1:length(x0)])+w;
-  normObs=.5*norm(y)^2;
-
   function ob(x::Array{Float64,1},y::Array{Float64,1}=y)
     return dot(phiVect(x),y);
   end
@@ -342,6 +340,41 @@ end
   end
 
   operator_spec_lchirp(typeof(kernel),kernel.dim,kernel.σ,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
+end
+
+"""
+```
+setSpecOperator(kernel,a0,x0,w=nothing)
+```
+
+Overloading which computes a pseudo-spectrogram from the specified kernel.
+"""
+function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1}=nothing)
+  function phiVect(x::Array{Float64,1})
+	# x is of the form (ηv, θv)
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local σ = kernel.σ
+	local N = kernel.Npω
+	
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		  ω=kernel.pω[i]
+		  t=kernel.pt[j]
+		  v[l]= σ * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η * N - tan(θ) * N * t) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2))
+        l+=1;
+      end
+    end
+    return v;
+  end
+  y=sum([a0[i]*phiVect(x0[i]) for i in 1:length(x0)]);
+  if w != nothing
+	  y += w
+  end
+  return setSpecOperator(kernel,a0, x0, w, y);
 end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
