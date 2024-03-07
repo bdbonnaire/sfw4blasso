@@ -2,8 +2,10 @@ import Pkg
 Pkg.activate("..")
 push!(LOAD_PATH,"../src")
 
+
 using Plots 
 using RadonKA
+import Peaks
 using blasso
 using sfw
 
@@ -25,8 +27,8 @@ println(typeof(kernel))
 #
 # %% Initial measure
 N = length(px)*length(py)
-a0 = [1.]
-x0 = [[-40., -pi/4]]
+a0 = [1., 1.]
+x0 = [[52., -pi/4], [-42., -pi/4]]
 # Noise
 #srand(1);
 w0=randn(N);
@@ -46,3 +48,10 @@ angles = range(0, pi,200) |> collect
 radon_t = radon(image, angles);
 pradon = heatmap(radon_t)
 plot(pIm, pradon)
+
+peak = argmax(vec(radon_t))
+MM = 65
+peak_v = convert.(Float64, [peak % MM, (peak ÷ MM)+1])
+# radon_t[peak % MM, (peak ÷ MM)+1]
+peak_real = copy(peak_v)
+peak_real[2] *= -pi/200
