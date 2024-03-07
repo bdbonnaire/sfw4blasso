@@ -17,7 +17,7 @@ end;
 
 # ╔═╡ bb6f403c-0897-4903-be58-8cd320f83d17
 begin 
-	using Revise
+	#using Revise
 	using blasso, sfw, certificate, toolbox
 end
 
@@ -46,12 +46,12 @@ end
 # ╔═╡ d71103a1-8e24-48b5-b6cd-9e9cf7a734a3
 begin
 	# Initial measure
-	a0=[1.];
-	x0=[[.1, 0.]]
+	a0=[1., 1.];
+	x0=[[.1, pi/4], [0.7, -pi/6]]
 	# Noise
 	#srand(1);
 	w0=randn(N^2);
-	sigma=.00;
+	sigma=.01;
 	#print(typeof(w0*sigma))
 	# Load operator Phi
 	op=blasso.setSpecOperator(kernel, a0,x0,sigma*w0);
@@ -65,7 +65,7 @@ begin
 		image += reshape(a0[i] * op.phi(x0[i]), (N,N))
 	end
 	image .+= reshape(sigma.*w0, (N,N))
-	heatmap(image)
+	Plots.heatmap(image)
 	#blasso.plotobservation(op)
 end
 
@@ -83,7 +83,7 @@ end
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=0.01;
+	lambda=1.;
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
@@ -107,19 +107,10 @@ begin
 	sfw.show_result(result, options)
 end
 
-# ╔═╡ 959b2184-787b-465e-9d1c-178510d9ea21
-println(x_0)
-
-# ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
-function plotSpikes2D(x0,a0,result, op)
-	nb_rec_spikes = length(result.u) ÷ 3
-	rec_amps = result.u[1:nb_rec_spikes]
-	rec_diracs = result.u[nb_rec_spikes+1:end]
-	rec_diracs = reshape(rec_diracs, (nb_rec_spikes,2))
-	x0 = stack(x0)
-	blasso.plotobservation(op)
-	scatter!(x0[1,:], x0[2,:], label="Original", color=RGBA(1.,1.,1,0.5), marker=:circle, markerstroke=false, markersize=10)
-	scatter!(rec_diracs[:,1], rec_diracs[:,2], label="Recovered Spikes", color=:red, marker=:circle, markerstrokecolor=false, markersize=4)
+# ╔═╡ 9614902e-f341-46c1-9cc9-16c3fbac29bb
+begin
+	a_est,x_est=blasso.decompAmpPos(result.u,d=op.dim);
+	blasso.computeErrors(x0, a0, x_est, a_est);
 end
 
 # ╔═╡ Cell order:
@@ -135,5 +126,4 @@ end
 # ╠═67884e0d-db4a-4a6a-ace9-ec88efe65d14
 # ╠═01ed0bc2-3c35-4d51-8d31-bb084b592879
 # ╠═3c8fb520-419c-4626-b42c-38c813385179
-# ╠═959b2184-787b-465e-9d1c-178510d9ea21
-# ╠═9f87f847-e175-4029-8870-eeeba7b6cebd
+# ╠═9614902e-f341-46c1-9cc9-16c3fbac29bb
