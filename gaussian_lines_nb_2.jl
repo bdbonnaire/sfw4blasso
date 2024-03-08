@@ -55,7 +55,7 @@ begin
 	# Noise
 	#srand(1);
 	w0=randn(N);
-	sigma_noise=0.31;
+	sigma_noise=0.31; # max phi = 1/sqrt(2*pi) multiply by the ratio 200/255 (noise/max xstar) to have the same amount of noise
 	# Load operator Phi
 	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
 	image = zeros((length(px),length(py)))
@@ -75,7 +75,7 @@ plotSpikes2D(x0,a0, result, op)
 
 # ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
 begin
-	lambda=10.;
+	lambda=10.; # works to kill spurious spikes but threshold the amplitudes (need to perform a Least Square fitting to estimate the amplitudes)
 	# Load objective function
 	fobj=blasso.setfobj(op,lambda);
 end
@@ -92,7 +92,6 @@ result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
 begin
-	println("x0=$(x0)")
 	sfw.show_result(result, options)
 end
 
