@@ -386,15 +386,24 @@ function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_es
 	matx_est = stack(x_est_ord)
 	offsets_est = matx_est[1,:]
 	angles_est = matx_est[2,:]
-	amp_error = (a_est_ord .- a0) ./ a0;
-	offset_error = offsets .- offsets_est;
+	amp_error = abs.((a_est_ord .- a0) ./ a0);
+	offset_error = abs.(offsets .- offsets_est);
 	# angle_error = (angles .- angles_est) ./ angles;
-  angle_error = angles .- angles_est;
+  angle_error = abs.(angles .- angles_est);
+
+  amp_error_mean = sum(amp_error)/length(amp_error);
+  offset_error_mean = sum(offset_error)/length(offset_error);
+  angle_error_mean = sum(angle_error)/length(angle_error);
+
 
 	println("amp_error=$(amp_error)")
 	println("offset_error=$(offset_error)")
 	println("angle_error=$(angle_error)")
-end
+
+  println("amp_error_mean=$(amp_error_mean)")
+	println("offset_error_mean=$(offset_error_mean)")
+	println("angle_error_mean=$(angle_error_mean)")
+end 
 
 function plotResult_GaussianLines(x0, a0, w, result, kernel, op)
 	rec_amps, rec_diracs = blasso.decompAmpPos(result.u, d=2)
