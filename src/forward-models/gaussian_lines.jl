@@ -376,19 +376,19 @@ end
 
 function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_est::Array{Array{Float64,1},1}, a_est::Array{Float64,1})
   a_est_ord, x_est_ord = blasso.spikesPair(x0, x_est, a_est)
-	println("a0=$(a0)")
-	println("a0_est=$(a_est_ord)")
-	println("x0=$(x0)")
-	println("x0_est=$(x_est_ord)")
-	matx = stack(x0)
-	offsets = matx[1,:]
-	angles = matx[2,:]
-	matx_est = stack(x_est_ord)
-	offsets_est = matx_est[1,:]
-	angles_est = matx_est[2,:]
-	amp_error = abs.((a_est_ord .- a0) ./ a0);
-	offset_error = abs.(offsets .- offsets_est);
-	# angle_error = (angles .- angles_est) ./ angles;
+  println("a0=$(a0)")
+  println("a0_est=$(a_est_ord)")
+  println("x0=$(x0)")
+  println("x0_est=$(x_est_ord)")
+  matx = stack(x0)
+  offsets = matx[1,:]
+  angles = matx[2,:]
+  matx_est = stack(x_est_ord)
+  offsets_est = matx_est[1,:]
+  angles_est = matx_est[2,:]
+  amp_error = abs.((a_est_ord .- a0) ./ a0);
+  offset_error = abs.(offsets .- offsets_est);
+  # angle_error = (angles .- angles_est) ./ angles;
   angle_error = abs.(angles .- angles_est);
 
   amp_error_mean = sum(amp_error)/length(amp_error);
@@ -396,14 +396,14 @@ function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_es
   angle_error_mean = sum(angle_error)/length(angle_error);
 
 
-	println("amp_error=$(amp_error)")
-	println("offset_error=$(offset_error)")
-	println("angle_error=$(angle_error)")
+  println("amp_error=$(amp_error)")
+  println("offset_error=$(offset_error)")
+  println("angle_error=$(angle_error)")
 
   println("amp_error_mean=$(amp_error_mean)")
-	println("offset_error_mean=$(offset_error_mean)")
-	println("angle_error_mean=$(angle_error_mean)")
-end 
+  println("offset_error_mean=$(offset_error_mean)")
+  println("angle_error_mean=$(angle_error_mean)")
+end
 
 function plotResult_GaussianLines(x0, a0, w, result, kernel, op)
 	rec_amps, rec_diracs = blasso.decompAmpPos(result.u, d=2)
@@ -456,7 +456,7 @@ function plotResult_GaussianLines(x0, a0, w, result, kernel, op)
 		label="Recovered")
 	
 	plot!(title="Spikes in the Parameter Space",
-		titlefontsize=20,
+		titlefontsize=18,
 		xlabel=L"$a$",
 		ylabel=L"$\theta$",
 		ylimit=[-pi/2, pi/2],
