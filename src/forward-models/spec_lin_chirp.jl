@@ -349,7 +349,7 @@ setSpecOperator(kernel,a0,x0,w=nothing)
 
 Overloading which computes a pseudo-spectrogram from the specified kernel.
 """
-function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1}=nothing)
+function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1})
   function phiVect(x::Array{Float64,1})
 	# x is of the form (ηv, θv)
     v=zeros(kernel.Npt*kernel.Npω);
@@ -371,10 +371,33 @@ function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Arra
     return v;
   end
   y=sum([a0[i]*phiVect(x0[i]) for i in 1:length(x0)]);
-  if w != nothing
-	  y += w
+  return setSpecOperator(kernel, y);
   end
-  return setSpecOperator(kernel,a0, x0, w, y);
+   
+function setSpecOperator(kernel::spec_lchirp,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+  function phiVect(x::Array{Float64,1})
+	# x is of the form (ηv, θv)
+    v=zeros(kernel.Npt*kernel.Npω);
+	# index for the loop
+    local l=1; 
+	local η = x[1]
+	local θ = x[2]
+	local σ = kernel.σ
+	local N = kernel.Npω
+	
+    for j in 1:kernel.Npt
+      for i in 1:kernel.Npω
+		  ω=kernel.pω[i]
+		  t=kernel.pt[j]
+		  v[l]= σ * (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2) ^ (-1//2) * exp(-2 * pi * σ ^ 2 * (ω - η * N - tan(θ) * N * t) ^ 2 / (1 + σ ^ 4 * tan(θ) ^ 2 * N ^ 2))
+        l+=1;
+      end
+    end
+    return v;
+  end
+  y=sum([a0[i]*phiVect(x0[i]) for i in 1:length(x0)]);
+  y += w
+  return setSpecOperator(kernel, y);
 end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_spec_lchirp)
