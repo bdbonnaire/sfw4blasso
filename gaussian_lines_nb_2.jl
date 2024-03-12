@@ -192,7 +192,7 @@ end
 # ╔═╡ fbb54e97-dc79-4bc3-bf8e-a33c10800762
 begin
 	a_est,x_est=blasso.decompAmpPos(result.u,d=op.dim);
-	blasso.computeErrors(x0, a0, x_est, a_est);
+	blasso.computeErrors(x0, a0, x_est, a_est, op);
 end
 
 # ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
@@ -261,7 +261,7 @@ end
 # ╔═╡ 7c1bee1e-c0b0-4304-ae2b-96e195979e4f
 begin
 	a_est2,x_est2=blasso.decompAmpPos(result2.u,d=op2.dim);
-	blasso.computeErrors(x02, a02, x_est2, a_est2);
+	blasso.computeErrors(x02, a02, x_est2, a_est2, op2);
 end
 
 # ╔═╡ 41f526a1-ee53-49f6-b308-9f051fc1a255
@@ -325,8 +325,11 @@ end
 # ╔═╡ 6f4a51c3-9447-4c4f-a80b-2d98d3d51b73
 begin
 	a_est3,x_est3=blasso.decompAmpPos(result3.u,d=op3.dim);
-	blasso.computeErrors(x03, a03, x_est3, a_est3);
 end
+
+# ╔═╡ 9bdf4884-f9da-4e20-b21c-ae6a01dcef74
+	blasso.computeErrors(x03, a03, x_est3, a_est3, op3);
+
 
 # ╔═╡ Cell order:
 # ╠═c13a86de-cb38-11ee-3890-c93e2ad0f39a
@@ -358,3 +361,4 @@ end
 # ╠═ec4ec66b-7354-42e0-841f-de947dfd0f31
 # ╠═e3c5156a-0b35-40a8-939a-749626981446
 # ╠═6f4a51c3-9447-4c4f-a80b-2d98d3d51b73
+# ╠═9bdf4884-f9da-4e20-b21c-ae6a01dcef74
