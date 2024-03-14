@@ -58,23 +58,34 @@ begin
 		y = kernel.pω
 		Npx = kernel.Npt
 		Npy = kernel.Npω
-	
+
+		p_original = heatmap(y0,
+			legend=:none, 
+			cbar=:none, 
+			framestyle=:none)
+		plot!(sizes=(1000,1000))
+
+		
 		p_lines = plot()
+		plot!(sizes=(1000,1000))
+
 		heatmap!(x,y,y0)
 	
 		# Line Plotting
+		#=
 		##Plot the ground truth 
 		for i in 1:length(x0)
-			local yt = N*tan( x0[i][2] ) *  x .+ N*x0[i][1];
-			plot!(x, yt, lw=5, c=:black, label="Ground Truth")
+			local yt = N*tan( x0[i][2] ) *  x[2:end-1] .+ N*x0[i][1];
+			plot!(x[1:end-1], yt, lw=5, c=:black, label="Ground Truth")
 		end
+		=#
 		# Plot the reocovered lines
 		for i in 1:length(rec_amps)
-			local y = N*tan( rec_diracs[i][2] ) *  x .+ N*rec_diracs[i][1];
+			local y = N*tan( rec_diracs[i][2] ) *  x[2:end-1] .+ N*rec_diracs[i][1];
 	
 			local color = RGBA(1.,0.,0.,
 				max(rec_amps[i]/max_amp,.4))
-			plot!(x, y, lw=1.5, c=color, label="Recovered")
+			plot!(x[2:end-1], y, lw=3, c=color, label="Recovered")
 		end
 		plot!(ylim=[y[1], y[end]],
 			legend=:none, 
@@ -116,7 +127,7 @@ begin
 	
 		plot(p_lines, p_parameterSpace)
 		=#
-		plot!(sizes=(1000,500))
+		return p_original, p_lines
 	end
 end
 
@@ -205,7 +216,11 @@ end
 result=sfw.sfw4blasso(fobj,kernel,op,options) # Solve problem
 
 # ╔═╡ 8c884d2d-2ae6-4ddb-9864-5d76e18035fd
-plotResult_Lines(x0, spec_harm_lin, result, kernel, op)
+let
+a,b = plotResult_Lines(x0, spec_harm_lin, result, kernel, op)
+plot(a); #savefig("figures/spec/spec.png")
+plot(b); savefig("figures/spec/spec_linesOnTopOnlyRed.png")
+end
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
 begin
@@ -276,9 +291,10 @@ end
 result_noisy=sfw.sfw4blasso(fobj_noisy,kernel,op_noisy,options) # Solve problem
 
 # ╔═╡ a5eb30b7-b5d9-45fb-98df-df12731a26f8
-begin
-	plotResult_Lines(x0, spec_harm_lin_noisy, result_noisy, kernel, op_noisy)
-	#savefig(abc, "spec_noisy_linesOnTop.pdf")
+let
+a,b = plotResult_Lines(x0, spec_harm_lin_noisy, result_noisy, kernel, op_noisy)
+plot(a); #savefig("figures/spec/spec_noisy.png")
+plot(b); savefig("figures/spec/spec_noisy_linesOnTopOnlyRed.png")
 end
 
 # ╔═╡ 26fcfbb7-a611-4a0d-a6ed-b303e9ffad4c
@@ -327,17 +343,17 @@ begin
 	sig = sig1+sig2
 	
 	# adding noise
-	#sigma_noise = 0.2
-	#rng = np.random.default_rng()
-	#noise = rng.normal(0, sigma_noise, N) + rng.normal(0, sigma_noise, N)*1j
-	#sig_noisy = sig + noise
+	sigma_noise = 0.2
+	rng = np.random.default_rng()
+	noise = rng.normal(0, sigma_noise, N) + rng.normal(0, sigma_noise, N)*1j
+	sig_noisy = sig + noise
 	"""
 	# computing spectrogram
-	spec_harm_lin_interf = py"gauss_spectrogram"(py"sig", σ)
+	spec_harm_lin_interf = py"gauss_spectrogram"(py"sig_noisy", σ)
 	x0_interf = [[py"freq1/N",0], [py"(freq1-df)/N", 0]]
 	
 	Pspec_interf = heatmap(abs.(spec_harm_lin_interf), cbar=:none, framestyle=:none, margin=(0,:px) )
-	savefig(Pspec_interf, "spec_interf.pdf")
+	#savefig(Pspec_interf, "spec_interf.pdf")
 end
 
 # ╔═╡ 4cc6a77e-6356-4557-b396-5c2ffd22b78e
@@ -351,6 +367,27 @@ end
 # ╔═╡ bffd0638-e81d-4904-b7b6-67210dc0721b
 result_interf=sfw.sfw4blasso(fobj_interf,kernel,op_interf,options) # Solve problem
 
+# ╔═╡ 1e30b4fd-8ee0-4c5f-a7a0-a290c3d6d3b6
+let
+a,b = plotResult_Lines(x0_interf, spec_harm_lin_interf, result_interf, kernel, op_interf)
+plot(a); #savefig("figures/spec/spec_interf.png")
+plot(b); savefig("figures/spec/spec_interf_linesOnTopOnlyRed.png")
+end
+
+# ╔═╡ 57eec84a-7ede-48a8-9708-8ba21a82272e
+begin
+	begin
+		a_est_interf,x_est_interf=blasso.decompAmpPos(result_interf.u,d=op_interf.dim);
+		open("errors/spec_interf","a") do out
+			redirect_stdout(out) do		
+				blasso.computeErrors(x0_interf, [0.,0.], x_est_interf, a_est_interf);
+			end
+		end
+	end
+	blasso.computeErrors(x0_interf, [0.,0.], x_est_interf, a_est_interf);
+	
+end
+
 # ╔═╡ a57b29f7-f3bf-4d50-bcd7-27e414df9822
 begin
 	println("Original parameters = $x0_interf")
@@ -358,15 +395,20 @@ begin
 end
 
 # ╔═╡ a9d43938-0fd1-4153-a09c-8cadab81df71
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	lambdas_interf = range(0.01, 1, 8)
 	results_λ_interf = test_lambda([1.,1.],x0_interf,lambdas_interf, fobj_interf, kernel, op_interf, options)
 end
+  ╠═╡ =#
 
 # ╔═╡ 6dd8c677-fed7-4e20-a896-e2cc189743ec
+#=╠═╡
 for i in 1:8
 	println("Mean error in spike location $(results_λ_interf[i].error_x)")
 end
+  ╠═╡ =#
 
 # ╔═╡ 34a3bc8e-b75e-4797-9db3-db47711f34a0
 md"## Crossing case"
@@ -410,11 +452,24 @@ begin
 	fobj_crossing=blasso.setfobj(op_crossing,lambda_crossing);
 end
 
+# ╔═╡ 5d5ba14a-acae-4437-a216-27394c8a068a
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	abc = plotResult_Lines(x0_crossing, spec_harm_lin_crossing, result_crossing, kernel, op_crossing)
+	savefig(abc, "figures/spec_crossing_linesOnTop.pdf")
+end
+  ╠═╡ =#
+
 # ╔═╡ 44184a53-9acc-449e-9fe3-0e3c23e796c5
 result_crossing=sfw.sfw4blasso(fobj_crossing,kernel,op_crossing,options) # Solve problem
 
-# ╔═╡ 5d5ba14a-acae-4437-a216-27394c8a068a
-plotResult_Lines(x0_crossing, spec_harm_lin_crossing, result_crossing, kernel, op_crossing)
+# ╔═╡ 66baf60d-1870-4c0b-b7f0-9d40b69a4638
+let
+a,b = plotResult_Lines(x0_crossing, spec_harm_lin_crossing, result_crossing, kernel, op_crossing)
+plot(a); #savefig("figures/spec/spec_crossing.png")
+plot(b); savefig("figures/spec/spec_crossing_linesOnTopOnlyRed.png")
+end
 
 # ╔═╡ e375d490-c8f1-42fd-ae8c-fe881a0bd289
 begin
@@ -471,6 +526,8 @@ end
 # ╠═2f47da1b-b768-4f51-b83f-e6f67a231e2b
 # ╠═dc8263c3-8e41-4918-bf70-f69d265b6597
 # ╠═4cc6a77e-6356-4557-b396-5c2ffd22b78e
+# ╠═1e30b4fd-8ee0-4c5f-a7a0-a290c3d6d3b6
+# ╠═57eec84a-7ede-48a8-9708-8ba21a82272e
 # ╠═bffd0638-e81d-4904-b7b6-67210dc0721b
 # ╠═a57b29f7-f3bf-4d50-bcd7-27e414df9822
 # ╠═a9d43938-0fd1-4153-a09c-8cadab81df71
@@ -479,6 +536,7 @@ end
 # ╠═caad4e0a-3b67-4fd6-a6be-4e9045de4c73
 # ╠═9220d643-eda8-4464-ad2d-54c7ee7a82e3
 # ╠═5d5ba14a-acae-4437-a216-27394c8a068a
+# ╠═66baf60d-1870-4c0b-b7f0-9d40b69a4638
 # ╠═44184a53-9acc-449e-9fe3-0e3c23e796c5
 # ╠═e375d490-c8f1-42fd-ae8c-fe881a0bd289
 # ╠═c877e2d4-3818-4316-aba0-c955e1af7fda
