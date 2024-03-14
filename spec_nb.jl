@@ -302,7 +302,7 @@ begin
 	a_est_noisy,x_est_noisy=blasso.decompAmpPos(result_noisy.u,d=op_noisy.dim);
 	open("errors/spec_noisy","a") do out
 		redirect_stdout(out) do		
-			blasso.computeErrors(x0, [0.,0.], x_est_noisy, a_est_noisy);
+			blasso.computeErrors(x0, [0.,0.], x_est_noisy, a_est_noisy, op_noisy);
 		end
 	end
 end
@@ -476,7 +476,7 @@ begin
 	a_est_crossing,x_est_crossing=blasso.decompAmpPos(result_crossing.u,d=op_crossing.dim);
 	open("errors/spec_crossing","a") do out
 		redirect_stdout(out) do		
-			blasso.computeErrors(x0_crossing, [0.,0.], x_est_crossing, a_est_crossing);
+			blasso.computeErrors(x0_crossing, [0.,0.], x_est_crossing, a_est_crossing, op_crossing);
 		end
 	end
 end

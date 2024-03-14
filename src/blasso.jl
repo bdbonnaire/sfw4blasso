@@ -1256,6 +1256,50 @@ function spikesPair(x::Array{Array{Float64,1},1}, x_est::Array{Array{Float64,1},
   return a_est_ordered, x_est_ordered
 end
 
+function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_est::Array{Array{Float64,1},1}, a_est::Array{Float64,1}, op::blasso.operator)
+  a_est_ord, x_est_ord = blasso.spikesPair(x0, x_est, a_est)
+  println("a0=$(a0)")
+  println("a0_est=$(a_est_ord)")
+  println("x0=$(x0)")
+  println("x0_est=$(x_est_ord)")
+  matx = stack(x0)
+  offsets = matx[1,:]
+  angles = matx[2,:]
+  matx_est = stack(x_est_ord)
+  offsets_est = matx_est[1,:]
+  angles_est = matx_est[2,:]
+  amp_error = abs.((a_est_ord .- a0) ./ a0);
+  offset_error = abs.(offsets .- offsets_est);
+  # angle_error = (angles .- angles_est) ./ angles;
+  angle_error = abs.(angles .- angles_est);
+
+  # Compute LS amplitudes 
+  X = zeros(length(op.y),length(a_est_ord)); 
+  for i in 1:length(a_est_ord)
+    X[:,i] = op.phi(x_est_ord[i]);
+  end
+  a_LS = pinv(X) * op.y;
+  println("a_LS=$(a_LS)")
+  ampLS_error = abs.((a_LS .- a0) ./ a0);
+
+  amp_error_mean = sum(amp_error)/length(amp_error);
+  ampLS_error_mean = sum(ampLS_error)/length(ampLS_error);
+  offset_error_mean = sum(offset_error)/length(offset_error);
+  angle_error_mean = sum(angle_error)/length(angle_error);
+
+
+  println("amp_error=$(amp_error)")
+  println("ampLS_error=$(ampLS_error)")
+  println("offset_error=$(offset_error)")
+  println("angle_error=$(angle_error)")
+
+  println("amp_error_mean=$(amp_error_mean)")
+  println("ampLS_error_mean=$(ampLS_error_mean)")
+
+  println("offset_error_mean=$(offset_error_mean)")
+  println("angle_error_mean=$(angle_error_mean)")
+end
+
 function poisson(lambda::Float64)
     # Generate a random variable following
     # Poisson distribution of parameter lambda
