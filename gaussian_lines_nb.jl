@@ -9,7 +9,7 @@ using InteractiveUtils
 begin
 	import Pkg
 	Pkg.activate(".")
-	Pkg.instanciate()
+	using LaTeXStrings
 	using LinearAlgebra, Plots
 end;
 
@@ -22,105 +22,273 @@ begin
 	using blasso, sfw, certificate, toolbox
 end
 
-# ╔═╡ 5dcf6210-5e2d-4c74-854e-5617749d8b8c
-md"# Gaussian Lines Kernel"
+# ╔═╡ 200a7dfa-7270-4c36-ab96-c5ec0c056522
+"""
+`main_alg(x0, a0, sigma_noise, lambda; 
+kernel_sigma=[1.,1.], 
+M=32., 
+angle_min=-π/3,
+angle_max=π/3)`
 
-# ╔═╡ 21f334a4-ef50-4e84-82c6-1d75a485d6b5
-begin
-	# Model constants
-	sigma=[5., 5.];
-	M = 32;
-	K = 2*M+1;
-	px=range(0., K-1);
+Convenience method to run the algorithm.
+
+# Arguments
+- `x0, a0` : original image spikes and amplitudes respectively
+- `sigma_noise` : multiplicative constant to the noise
+- `M` : half size of the image
+- `angle_min, angle_max` : parameter space bounds
+
+# Return
+- results 		: blasso result struct
+- comparison 	: string comparing results with ground truth
+- Plots obj : Original Image
+- Plots obj : Recovered Lines
+- Plots obj : Parameter space spikes
+"""
+function main_alg(x0::Array{Array{Float64}}, a0::Array{Float64}, sigma_noise::Float64, lambda::Float64; kernel_sigma::Array{Float64}=[1.,1.], M::Float64=32., angle_min::Float64=-π/3, angle_max::Float64=π/3)
+	# Specifying the Kernel 
+	px=range(-M, M);
 	px=collect(px);
 	py=px;
-	angle_max = π/3;
-	angle_min = - angle_max;
-	# Option solver
+	N = length(px)*length(py)
+	kernel=blasso.setGaussLinesKernel(px,py,kernel_sigma,angle_min,angle_max);
+	
+	# Noise
+	w0=randn(N);
+	# Load operator Phi
+	operator=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
+	
+	# Load objective function
+	fobj=blasso.setfobj(operator,lambda);
+	
+	
+	# sfw4blasso options
 	options=sfw.sfw_options();
-	# Load kernel attributes
-	kernel=blasso.setGaussLinesKernel(px,py,sigma,angle_min,angle_max);
-	println(typeof(kernel))
+	# Computing the results
+	result=sfw.sfw4blasso(fobj,kernel,operator,options); # Solve problem
+	
+	function plotResult()
+		rec_amps, rec_diracs = blasso.decompAmpPos(result.u, d=2)
+		max_amp = maximum(rec_amps)
+		x = kernel.px
+		y = kernel.py
+		Npx = kernel.Npx
+		Npy = kernel.Npy
+	
+		############ Plotting the original image #############################
+		# Making it
+		image_in = zeros(Npx, Npy)
+		for i in 1:length(a0)
+			image_in += a0[i]*reshape(operator.phi(x0[i]), (Npx,Npy))
+		end
+		image_in += reshape(w, (Npx,Npy))
+		# Plotting it
+		p_imageIn = heatmap(image_in,
+							c=:grays,
+							ratio=1,
+							cbar=:none,
+							framestyle=:none,
+							sizes=(1000,1000),
+							);
+	
+		
+		############ Original Image with Result Lines on Top #################
+		p_lines = plot(sizes=(1000,1000));
+		## Plotting the original image
+		heatmap!(x,y,image_in, c=:grays, ratio=1);
+	
+		## Line Plotting
+		# Plotting the ground truth 
+		for i in 1:length(a0)
+			local yt = - tan( π/2 - x0[i][2] ) * ( x .- x0[i][1]);
+			plot!(x, yt, 
+				  lw=5,
+				  c=:black,
+				  label="Ground Truth")
+		end
+		
+		# Plotting the recovered lines
+		for i in 1:length(rec_amps)
+			local y = - tan( π/2 - rec_diracs[i][2] ) * ( x .- rec_diracs[i][1]);
+	
+			local color = RGBA(1.,0.,0.,
+				max(rec_amps[i]/max_amp,.6))
+			plot!(x, y, 
+				  lw=1.5,
+				  c=color,
+				  label="Recovered")
+		end
+		## Misc. options
+		plot!(ylim=[y[1], y[end]],
+			cbar=:none, 
+			framestyle=:none,
+			legend=:none
+		);
+		
+		
+		############## Parameter Space Plot ##############################
+		p_parameterSpace = plot(sizes=(1000,1000));
+		# Making the array{array} into  2d arrays
+		x0_s = stack(x0)
+		rec_dirac_s = stack(rec_diracs)
+		# Ground Truth Spikes
+		scatter!(x0_s[1,:], x0_s[2,:], 
+			markersize=15, 
+			c=:black, 
+			label="Ground Truth")	
+		# Result Spikes
+		scatter!(rec_dirac_s[1,:], rec_dirac_s[2,:],
+			markersize=6,
+			# Intensity of amps are shown by alpha of the marker
+			c=RGBA.(1.,0.,0.,max.(rec_amps./max_amp,0.5)),
+			label="Recovered")
+		
+		# Misc. Options
+		plot!(
+			title=" ",
+			xlabel=L"$\eta$",
+			ylabel=L"$\theta$",
+			ylimit=[-pi/2, pi/2],
+			#yticks=((-4:4)*pi/8,[L"-\frac{\pi}{2}", L"-\frac{3\pi}{8}", L"-\frac{\pi}{4}", L"-\frac{\pi}{8}", L"0", L"\frac{\pi}{8}",L"\frac{\pi}{4}",L"\frac{3\pi}{8}",L"\frac{\pi}{2}"]),
+			# Setting ticks to multiples of π
+			yticks=((-2:2)*pi/4,[L"-\frac{\pi}{2}", L"-\frac{\pi}{4}", L"0",L"\frac{\pi}{4}",L"\frac{\pi}{2}"]),
+			labelfontsize=18,
+			xtickfontsize=14,
+			ytickfontsize=18,
+			yguidefontrotation=.9,
+			legendfontsize=12,
+			minorgrid=true,
+			minorticks=2,
+			margin_top=(20,:px),
+			# Draws a box around the plot
+			framestyle=:box)
+	
+			plot!()
+	
+		return p_lines, p_parameterSpace, p_imageIn
+	end
+	p_imageIn, p_lines, p_parameterSpace = plotResult()
+
+	#======================= Comparison =================================#
+	comp_buffer = IOBuffer();
+	
+	a,x = blasso.decompAmpPos(result.u, d=2);
+	redirect_stdout(blasso.computeErrors(x0, a0, x, a, op3), comp_buffer)
+	comparison = String(take!(comp_buffer))
+	
+	return result, comparison, p_imageIn, p_lines, p_parameterSpace
+	end
+
+# ╔═╡ 5dcf6210-5e2d-4c74-854e-5617749d8b8c
+md"""
+# Gaussian Lines Kernel
+## Well-Separated Lines
+"""
+
+
+# ╔═╡ c0ed2392-da39-4ce4-a8b9-58dec586a9d9
+begin
+	a0=[1., 1., 1.];
+	x0=[[0, -π/5], [-15, pi/16], [10, pi/6]];
+	lambda=10.;
+	sigma_noise = 0.031;
 end
 
-# ╔═╡ b4aea33e-6012-44b5-90ee-960e476382bd
+# ╔═╡ b902905b-ced7-4b05-98fa-9174c6453d1d
+result_3lines, comp_3lines, p_3lines, p_3lines_lines, p_3lines_parameterSpace = main_alg(x0, a0, sigma_noise, lambda)
+
+# ╔═╡ 8caee775-cf0f-42a4-8ce0-9c66580f5104
+plot(p_3lines)
+
+# ╔═╡ 36d771c8-2fcb-42f0-a206-11556222d399
+plot(p_3lines_lines)
+
+# ╔═╡ 1a7cd06b-dde1-4f2c-9100-10a18f110402
+plot(p_3lines_parameterSpace)
+
+# ╔═╡ c590a155-cce2-4f31-81a6-1dc065844f3c
+println(comp_3lines)
+
+# ╔═╡ c6b23a87-166e-4fc7-8cd9-a80b26912753
+md"""
+## Two Close Lines
+"""
+
+# ╔═╡ 95b38abf-a574-4696-a8e8-4b71cc23a4da
 begin
 	# Initial measure
-	N = length(px)*length(py)
-	a0=[1., 1., 1.];
-	x0=[[-12.0, 3*π/10], [117, -7*pi/16], [104, -pi/3]];
-	# Noise
-	#srand(1);
-	w0=randn(N);
-	sigma_noise=.001;
-	# Load operator Phi
-	op=blasso.setGaussLineOperator(kernel,a0,x0,sigma_noise*w0);
-	image = zeros((length(px),length(py)))
-	for i in 1:length(a0)
-		image += a0[i]*reshape(op.phi(x0[i]), (length(px),length(py)))
-	end
-	image += reshape(sigma_noise*w0, (length(px),length(py)))
-	heatmap(image, aspect_ratio=1)
-	#blasso.plotobservation(op)
+	a02=[1., 1.];
+	x02=[[-1, -0.73], [1, -0.75]];
+	sigma_noise2=0.031; # equivalent for max 255 to randn()*noiselevel with noiselevel=20
+	lambda2=1.;
 end
 
-# ╔═╡ c468d81f-bfbc-4934-8518-58efcc551f72
-# ╠═╡ disabled = true
-#=╠═╡
-plotSpikes2D(x0,a0, result, op)
-  ╠═╡ =#
+# ╔═╡ 6752ac53-174b-4032-99e0-93686130ba58
+result_closelines, comp_closelines, p_closelines, p_closelines_lines, p_closelines_parameterSpace = main_alg(x0, a0, sigma_noise);
 
-# ╔═╡ 436b02fb-2b8b-4e66-93ca-e344ecd90df0
+# ╔═╡ 6141e714-46df-4f2a-ad8e-969374f7d7a6
+plot(p_closeLines)
+
+# ╔═╡ 23a093f0-50f4-430a-abed-65119270e541
+plot(p_closeLines_lines)
+
+# ╔═╡ 6cb65afe-f7d4-48df-975b-2b25a5faac33
+plot(p_closeLines_parameterSpace)
+
+# ╔═╡ 4caae05a-23f4-42ee-b0e4-293dceb1a295
+println(comp_closelines)
+
+# ╔═╡ 41f526a1-ee53-49f6-b308-9f051fc1a255
+md"""
+## Many Intermingled Lines
+"""
+
+# ╔═╡ 76cb3f79-5a4a-4397-a254-2c676855ac26
 begin
-	lambda=0.005;
-	# Load objective function
-	fobj=blasso.setfobj(op,lambda);
+	# Initial measure
+	a03=[60, 80, 255, 100, 180, 120, 240]/255;
+	x03=[[15, -0.75], [25, -0.5], [2, -0.25], [7, 0.001], [-20, 0.3], [-5, 0.55], [-10, 0.75]];
+	sigma_noise3=0.031; # equivalent for max 255 to randn()*noiselevel with noiselevel=20
 end
 
-# ╔═╡ 67884e0d-db4a-4a6a-ace9-ec88efe65d14
-#begin
-#	etaV = certificate.computeEtaV(x0, sign.(a0), op)
-#	#tt = collect(range(-1,1, 500))
-#	#plot(tt, etaV(tt))
-#end
+# ╔═╡ baab2693-f138-401b-96e2-93485d7079de
+result_interLines, comp_interLines, p_interLines, p_interLines_lines, p_interLines_parameterSpace = main_alg(x0, a0, sigma_noise)
 
-# ╔═╡ 01ed0bc2-3c35-4d51-8d31-bb084b592879
-# ╠═╡ show_logs = false
-# ╠═╡ disabled = true
-#=╠═╡
-result=sfw.sfw4blasso(fobj,kernel,op,options); # Solve problem
-  ╠═╡ =#
+# ╔═╡ a3e79a91-fd7d-4ac0-8519-4cc0e634a276
+plot(p_interLines)
 
-# ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
-#=╠═╡
-begin
-	println("x0=$(x0)")
-	sfw.show_result(result, options)
-end
-  ╠═╡ =#
+# ╔═╡ 89afcd86-f919-47a8-b36d-d464c4f1ecaf
+plot(p_interLines_lines)
 
-# ╔═╡ 9f87f847-e175-4029-8870-eeeba7b6cebd
-function plotSpikes2D(x0,a0,result, op)
-	nb_rec_spikes = length(result.u) ÷ 3
-	rec_amps = result.u[1:nb_rec_spikes]
-	rec_diracs = result.u[nb_rec_spikes+1:end]
-	rec_diracs = reshape(rec_diracs, (nb_rec_spikes,2))
-	x0 = stack(x0)
-	blasso.plotobservation(op)
-	scatter!(x0[1,:], x0[2,:], label="Original", color=RGBA(1.,1.,1,0.5), marker=:circle, markerstroke=false, markersize=10)
-	scatter!(rec_diracs[:,1], rec_diracs[:,2], label="Recovered Spikes", color=:red, marker=:circle, markerstrokecolor=false, markersize=4)
-end
+# ╔═╡ ec4ec66b-7354-42e0-841f-de947dfd0f31
+plot(p_interLines_parameterSpace)
+
+# ╔═╡ 0aa1d40f-08ae-407e-a594-d58698177aa0
+println(comp_interLines)
 
 # ╔═╡ Cell order:
 # ╠═c13a86de-cb38-11ee-3890-c93e2ad0f39a
 # ╠═9e13dfd5-078d-49bb-827e-97575a6a42df
 # ╠═bb6f403c-0897-4903-be58-8cd320f83d17
-# ╠═5dcf6210-5e2d-4c74-854e-5617749d8b8c
-# ╠═21f334a4-ef50-4e84-82c6-1d75a485d6b5
-# ╠═b4aea33e-6012-44b5-90ee-960e476382bd
-# ╠═c468d81f-bfbc-4934-8518-58efcc551f72
-# ╠═436b02fb-2b8b-4e66-93ca-e344ecd90df0
-# ╠═67884e0d-db4a-4a6a-ace9-ec88efe65d14
-# ╠═01ed0bc2-3c35-4d51-8d31-bb084b592879
-# ╠═3c8fb520-419c-4626-b42c-38c813385179
-# ╟─9f87f847-e175-4029-8870-eeeba7b6cebd
+# ╠═200a7dfa-7270-4c36-ab96-c5ec0c056522
+# ╟─5dcf6210-5e2d-4c74-854e-5617749d8b8c
+# ╠═c0ed2392-da39-4ce4-a8b9-58dec586a9d9
+# ╠═b902905b-ced7-4b05-98fa-9174c6453d1d
+# ╠═8caee775-cf0f-42a4-8ce0-9c66580f5104
+# ╠═36d771c8-2fcb-42f0-a206-11556222d399
+# ╠═1a7cd06b-dde1-4f2c-9100-10a18f110402
+# ╠═c590a155-cce2-4f31-81a6-1dc065844f3c
+# ╟─c6b23a87-166e-4fc7-8cd9-a80b26912753
+# ╠═95b38abf-a574-4696-a8e8-4b71cc23a4da
+# ╠═6752ac53-174b-4032-99e0-93686130ba58
+# ╠═6141e714-46df-4f2a-ad8e-969374f7d7a6
+# ╠═23a093f0-50f4-430a-abed-65119270e541
+# ╠═6cb65afe-f7d4-48df-975b-2b25a5faac33
+# ╠═4caae05a-23f4-42ee-b0e4-293dceb1a295
+# ╟─41f526a1-ee53-49f6-b308-9f051fc1a255
+# ╠═76cb3f79-5a4a-4397-a254-2c676855ac26
+# ╠═baab2693-f138-401b-96e2-93485d7079de
+# ╠═a3e79a91-fd7d-4ac0-8519-4cc0e634a276
+# ╠═89afcd86-f919-47a8-b36d-d464c4f1ecaf
+# ╠═ec4ec66b-7354-42e0-841f-de947dfd0f31
+# ╠═0aa1d40f-08ae-407e-a594-d58698177aa0
