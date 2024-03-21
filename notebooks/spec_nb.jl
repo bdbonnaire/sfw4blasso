@@ -13,7 +13,7 @@ begin
 end;
 
 # ╔═╡ 9e13dfd5-078d-49bb-827e-97575a6a42df
-	push!(LOAD_PATH,"./src/");
+	push!(LOAD_PATH,"../src/");
 
 # ╔═╡ bb6f403c-0897-4903-be58-8cd320f83d17
 begin 
@@ -156,6 +156,7 @@ begin
 	sig = sig1+sig2
 	"""
 	x0 = [[py"freq/N", 0], [py"freq_lin/N", atan(py"a/N")]]
+	a0 = [1.,1.]
 	spec_harm_lin = py"gauss_spectrogram"(py"sig", σ)
 	p_spec = heatmap(abs.(spec_harm_lin), cbar=:none, framestyle=:none, margin=(0,:px) )
 	savefig(p_spec, "spec.pdf")
@@ -219,13 +220,24 @@ result=sfw.sfw4blasso(fobj,kernel,op,options) # Solve problem
 let
 a,b = plotResult_Lines(x0, spec_harm_lin, result, kernel, op)
 plot(a); #savefig("figures/spec/spec.png")
-plot(b); savefig("figures/spec/spec_linesOnTopOnlyRed.png")
+plot(b);# savefig("figures/spec/spec_linesOnTopOnlyRed.png")
 end
 
 # ╔═╡ 3c8fb520-419c-4626-b42c-38c813385179
 begin
 	println("Original parameters = $x0")
 	sfw.show_result(result, options)
+end
+
+# ╔═╡ da895779-bf60-4de4-a653-a9365c723b8c
+typeof(op) == blasso.operator_spec_lchirp
+
+# ╔═╡ 18d98400-3e2b-42b1-b07c-c78e46e0f0c2
+let
+	a,x = blasso.decompAmpPos(result.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	blasso.computeErrors(x0,a0, x, a, op)
 end
 
 # ╔═╡ 9081f8c7-9938-4b58-aa63-fa4d1562ebda
@@ -294,18 +306,32 @@ result_noisy=sfw.sfw4blasso(fobj_noisy,kernel,op_noisy,options) # Solve problem
 let
 a,b = plotResult_Lines(x0, spec_harm_lin_noisy, result_noisy, kernel, op_noisy)
 plot(a); #savefig("figures/spec/spec_noisy.png")
-plot(b); savefig("figures/spec/spec_noisy_linesOnTopOnlyRed.png")
+plot(b); #savefig("figures/spec/spec_noisy_linesOnTopOnlyRed.png")
 end
 
+# ╔═╡ 50facba1-8795-4a84-b480-6a27cf5b5d57
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	a,x = blasso.decompAmpPos(result_noisy.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	blasso.computeErrors(x0,a0, x, a, op_noisy)
+end
+  ╠═╡ =#
+
 # ╔═╡ 26fcfbb7-a611-4a0d-a6ed-b303e9ffad4c
-begin
-	a_est_noisy,x_est_noisy=blasso.decompAmpPos(result_noisy.u,d=op_noisy.dim);
+let
+	a,x = blasso.decompAmpPos(result_noisy.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
 	open("errors/spec_noisy","a") do out
 		redirect_stdout(out) do		
-			blasso.computeErrors(x0, [0.,0.], x_est_noisy, a_est_noisy, op_noisy);
+			blasso.computeErrors(x0,a0, x, a, op_noisy)
 		end
 	end
 end
+
 
 # ╔═╡ 0270d7ad-4d6b-47e8-b5a5-ba554551161e
 # ╠═╡ disabled = true
@@ -364,6 +390,21 @@ begin
 	fobj_interf=blasso.setfobj(op_interf,lambda_interf);
 end
 
+# ╔═╡ 57eec84a-7ede-48a8-9708-8ba21a82272e
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	a,x = blasso.decompAmpPos(result.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	open("errors/spec_interf","a") do out
+		redirect_stdout(out) do		
+			blasso.computeErrors(x0_interf,a0, x, a, op_interf)
+		end
+	end
+end
+  ╠═╡ =#
+
 # ╔═╡ bffd0638-e81d-4904-b7b6-67210dc0721b
 result_interf=sfw.sfw4blasso(fobj_interf,kernel,op_interf,options) # Solve problem
 
@@ -371,21 +412,30 @@ result_interf=sfw.sfw4blasso(fobj_interf,kernel,op_interf,options) # Solve probl
 let
 a,b = plotResult_Lines(x0_interf, spec_harm_lin_interf, result_interf, kernel, op_interf)
 plot(a); #savefig("figures/spec/spec_interf.png")
-plot(b); savefig("figures/spec/spec_interf_linesOnTopOnlyRed.png")
+plot(b); #savefig("figures/spec/spec_interf_linesOnTopOnlyRed.png")
 end
 
-# ╔═╡ 57eec84a-7ede-48a8-9708-8ba21a82272e
-begin
-	begin
-		a_est_interf,x_est_interf=blasso.decompAmpPos(result_interf.u,d=op_interf.dim);
-		open("errors/spec_interf","a") do out
-			redirect_stdout(out) do		
-				blasso.computeErrors(x0_interf, [0.,0.], x_est_interf, a_est_interf);
-			end
+# ╔═╡ b3ed07d7-34d1-4a54-b796-da31b79270af
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	a,x = blasso.decompAmpPos(result_interf.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	blasso.computeErrors(x0_interf,a0, x, a, op)
+end
+  ╠═╡ =#
+
+# ╔═╡ 30f1fdfa-5030-4a97-85aa-0e57c7dc46e1
+let
+	a,x = blasso.decompAmpPos(result_interf.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	open("errors/spec_interf","a") do out
+		redirect_stdout(out) do		
+			blasso.computeErrors(x0,a0, x, a, op_interf)
 		end
 	end
-	blasso.computeErrors(x0_interf, [0.,0.], x_est_interf, a_est_interf);
-	
 end
 
 # ╔═╡ a57b29f7-f3bf-4d50-bcd7-27e414df9822
@@ -452,6 +502,9 @@ begin
 	fobj_crossing=blasso.setfobj(op_crossing,lambda_crossing);
 end
 
+# ╔═╡ 44184a53-9acc-449e-9fe3-0e3c23e796c5
+result_crossing=sfw.sfw4blasso(fobj_crossing,kernel,op_crossing,options) # Solve problem
+
 # ╔═╡ 5d5ba14a-acae-4437-a216-27394c8a068a
 # ╠═╡ disabled = true
 #=╠═╡
@@ -461,17 +514,39 @@ begin
 end
   ╠═╡ =#
 
-# ╔═╡ 44184a53-9acc-449e-9fe3-0e3c23e796c5
-result_crossing=sfw.sfw4blasso(fobj_crossing,kernel,op_crossing,options) # Solve problem
-
 # ╔═╡ 66baf60d-1870-4c0b-b7f0-9d40b69a4638
 let
 a,b = plotResult_Lines(x0_crossing, spec_harm_lin_crossing, result_crossing, kernel, op_crossing)
 plot(a); #savefig("figures/spec/spec_crossing.png")
-plot(b); savefig("figures/spec/spec_crossing_linesOnTopOnlyRed.png")
+plot(b); #savefig("figures/spec/spec_crossing_linesOnTopOnlyRed.png")
+end
+
+# ╔═╡ ed89bbc7-1043-4062-8d72-0a300d8c6370
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	a,x = blasso.decompAmpPos(result_crossing.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	blasso.computeErrors(x0_crossing,a0, x, a, op)
+end
+  ╠═╡ =#
+
+# ╔═╡ c6afcd44-11c0-4df1-88e5-4309294516ee
+let
+	a,x = blasso.decompAmpPos(result_crossing.u, d=2)
+	a /= σ*N^2
+	a = sqrt.(a)
+	open("errors/spec_crossing","a") do out
+		redirect_stdout(out) do		
+			blasso.computeErrors(x0,a0, x, a, op_crossing)
+		end
+	end
 end
 
 # ╔═╡ e375d490-c8f1-42fd-ae8c-fe881a0bd289
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	a_est_crossing,x_est_crossing=blasso.decompAmpPos(result_crossing.u,d=op_crossing.dim);
 	open("errors/spec_crossing","a") do out
@@ -480,6 +555,7 @@ begin
 		end
 	end
 end
+  ╠═╡ =#
 
 # ╔═╡ c877e2d4-3818-4316-aba0-c955e1af7fda
 begin
@@ -511,8 +587,10 @@ end
 # ╠═436b02fb-2b8b-4e66-93ca-e344ecd90df0
 # ╠═8c884d2d-2ae6-4ddb-9864-5d76e18035fd
 # ╠═01ed0bc2-3c35-4d51-8d31-bb084b592879
-# ╠═1aa4ca75-8629-4132-8790-bb610e90c86b
+# ╟─1aa4ca75-8629-4132-8790-bb610e90c86b
 # ╠═3c8fb520-419c-4626-b42c-38c813385179
+# ╠═da895779-bf60-4de4-a653-a9365c723b8c
+# ╠═18d98400-3e2b-42b1-b07c-c78e46e0f0c2
 # ╠═9081f8c7-9938-4b58-aa63-fa4d1562ebda
 # ╠═4fa6816c-ca4d-4153-9cda-cebbe136a297
 # ╟─0dec2a4e-dd48-4ad1-9f89-54d63877129b
@@ -520,6 +598,7 @@ end
 # ╠═5092307e-6c23-46f9-b119-6ae8ce3e0604
 # ╠═a5eb30b7-b5d9-45fb-98df-df12731a26f8
 # ╠═83877111-4e59-4c6d-830a-ecf9aea28bda
+# ╠═50facba1-8795-4a84-b480-6a27cf5b5d57
 # ╠═26fcfbb7-a611-4a0d-a6ed-b303e9ffad4c
 # ╠═0270d7ad-4d6b-47e8-b5a5-ba554551161e
 # ╠═43699165-4a48-4aeb-ba21-4ebf240362d9
@@ -528,6 +607,8 @@ end
 # ╠═4cc6a77e-6356-4557-b396-5c2ffd22b78e
 # ╠═1e30b4fd-8ee0-4c5f-a7a0-a290c3d6d3b6
 # ╠═57eec84a-7ede-48a8-9708-8ba21a82272e
+# ╠═b3ed07d7-34d1-4a54-b796-da31b79270af
+# ╠═30f1fdfa-5030-4a97-85aa-0e57c7dc46e1
 # ╠═bffd0638-e81d-4904-b7b6-67210dc0721b
 # ╠═a57b29f7-f3bf-4d50-bcd7-27e414df9822
 # ╠═a9d43938-0fd1-4153-a09c-8cadab81df71
@@ -538,6 +619,8 @@ end
 # ╠═5d5ba14a-acae-4437-a216-27394c8a068a
 # ╠═66baf60d-1870-4c0b-b7f0-9d40b69a4638
 # ╠═44184a53-9acc-449e-9fe3-0e3c23e796c5
+# ╠═ed89bbc7-1043-4062-8d72-0a300d8c6370
+# ╠═c6afcd44-11c0-4df1-88e5-4309294516ee
 # ╠═e375d490-c8f1-42fd-ae8c-fe881a0bd289
 # ╠═c877e2d4-3818-4316-aba0-c955e1af7fda
 # ╠═4e8dc31e-dfbf-48e1-9578-44bcab1b7736
