@@ -8,7 +8,7 @@ using InteractiveUtils
 # ╠═╡ show_logs = false
 begin
 	import Pkg
-	Pkg.activate(".")
+	Pkg.activate("..")
 	using LaTeXStrings
 	using LinearAlgebra, Plots
 end;
