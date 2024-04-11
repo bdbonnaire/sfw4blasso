@@ -94,9 +94,16 @@ mutable struct operator_gaussLines <: operator
   correl::Function
   d1correl::Function
   d2correl::Function
+
+  radon::Bool
 end
 
-function setGaussLineOperator(kernel::gaussianLines,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+function setGaussLineOperator(
+		kernel::gaussianLines,
+		a0::Array{Float64,1},
+		x0::Array{Array{Float64,1},1},
+		w::Array{Float64,1},
+		radon::Bool=false)
 
 	"""phiVect(x)
 	Given the parameters x=(av, θv), computes the associated spectrogram line.
@@ -326,7 +333,7 @@ end
     return(d2c)
   end
 
-  operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
+  operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl, radon);
 end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_gaussLines)
