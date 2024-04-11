@@ -355,7 +355,10 @@ function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussian
 end
 
 using RadonKA
-" !!!! Careful, this method only considers square images !!!!"
+"""
+Use the Radon transform to estimate the position of the next line.
+!!!! Careful, this method only works on square images for now !!!!
+"""
 function radonLineEstimate(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussianLines,op::blasso.operator_gaussLines,positivity::Bool=true)
 
 	# half-size of the image
@@ -380,6 +383,7 @@ function radonLineEstimate(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussi
 	peak_real[1] /= cos(peak_real[2]);
 	
 	return peak_real, op.correl(peak_real, Phiu)
+end
 
 """
 Sets the amplitude bounds 
