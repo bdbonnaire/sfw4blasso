@@ -379,7 +379,7 @@ function radonLineEstimate(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussi
 	border_img = zeros((2T,2T))
 	border_img[(2T-MM)÷2 .+ (1:MM), (2T-MM)÷2 .+ (1:MM)] = image
 
-	angles = range(0, pi,200) |> collect
+	angles = range(-pi/2, pi/2, 200) |> collect
 	radon_t = radon(border_img, angles);
 	# Computing peak of radon
 	peak = argmax(vec(radon_t))
