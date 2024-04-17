@@ -352,10 +352,15 @@ function computeNextPosition!(r::sfw_result,kernel::blasso.kernel,op::blasso.ope
   end
   #
 
-  # Minimizing on a grid.
   t=time();
-  argmin_previous,correl_min=blasso.minCorrelOnGrid(Phiu,kernel,op,o.positivity);
-  argmin_grid=copy(argmin_previous);
+  if typeof(kernel) == blasso.gaussianLines && op.radon == true
+	  # finding next line via Radon Transform
+	  argmin_previous, correl_min = blasso.radonLineEstimate(Phiu, kernel, op);
+  else
+	  # Minimizing on a grid.
+	  argmin_previous,correl_min=blasso.minCorrelOnGrid(Phiu,kernel,op,o.positivity);
+  end
+  argmin_grid=copy(argmin_previous); # TODO: Are those two useless ?
   Argmin=copy(argmin_grid);
   if o.show_time_newPos
     println("Time minimization on grid : ",round(time()-t;digits=5))
