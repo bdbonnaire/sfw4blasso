@@ -80,8 +80,7 @@ md"# Misc."
 
 # ╔═╡ 200a7dfa-7270-4c36-ab96-c5ec0c056522
 begin
-	#=
-"""
+@doc raw"""
 `main_alg(x0, a0, sigma_noise, lambda, [kernel_sigma, 
 M, 
 angle_min,
@@ -90,19 +89,34 @@ angle_max]`
 Convenience method to run the algorithm.
 
 # Arguments
-- `x0, a0` : original image spikes and amplitudes respectively
-- `sigma_noise` : multiplicative constant to the noise
-- `M` : half size of the image
-- `angle_min, angle_max` : parameter space bounds
+- `x0, a0` : 
+	original image spikes and amplitudes respectively. 
+	`x0` is of the form [[offset, angle], ...]
+- `sigma_noise` :
+	multiplicative constant to the noise
+- `lambda`:
+	Regulating constant for the BLASSO problem
+- `kernel_sigma`: `[1.,1.]` by default
+	parameter fixing the height and width of the Gaussian kernel 
+- `M` : 32 by default
+	half size of the image
+- `angle_min, angle_max` : $-\pi/3$ and $\pi/3$ resp. by default
+	parameter space bounds 
+- `radon` : `true` by default
+	Whether to use Radon transform for the first estimate (default) or a minimization on the parameter grid.
 
 # Return
-- results 		: blasso result struct
-- comparison 	: string comparing results with ground truth
-- Plots obj : Original Image
-- Plots obj : Recovered Lines
-- Plots obj : Parameter space spikes
+- results : 
+	blasso result struct
+- comparison : 
+	string comparing results with ground truth
+- Plots obj : 
+	Original Image
+- Plots obj : 
+	Recovered Lines
+- Plots obj : 
+	Parameter space spikes
 """
-	=#
 function main_alg(x0::Array{Array{Float64,1},1}, a0::Array{Float64}, sigma_noise::Float64, lambda::Float64; kernel_sigma::Array{Float64}=[1.,1.], M::Float64=32., angle_min::Float64=-π/3, angle_max::Float64=π/3, radon::Bool=true)
 	#========================== Main Algorithm ================================#
 	# Specifying the Kernel 
