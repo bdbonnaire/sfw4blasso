@@ -1280,7 +1280,7 @@ function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_es
   end
   a_LS = pinv(X) * op.y;
   println("a_LS=$(a_LS)")
-  ampLS_error = abs.((a_LS .- a0) ./ a0);
+  ampLS_error = abs.((a_LS .- a0) ./ a0); # to compare with the previous approach whose max is 255 and here a0*1/sqrt(2*pi*sigma^2)
 
   amp_error_mean = sum(amp_error)/length(amp_error);
   ampLS_error_mean = sum(ampLS_error)/length(ampLS_error);

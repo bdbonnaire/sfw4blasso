@@ -18,6 +18,7 @@ end;
 # ╔═╡ bb6f403c-0897-4903-be58-8cd320f83d17
 begin 
 	using Revise
+	using PyCall
 	using blasso, sfw, certificate, toolbox
 end
 

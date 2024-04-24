@@ -22,6 +22,9 @@ begin
 	using blasso, sfw, certificate, toolbox
 end
 
+# ╔═╡ acfcb364-66b8-452e-9254-2330b0ad5a37
+pwd()
+
 # ╔═╡ 5dcf6210-5e2d-4c74-854e-5617749d8b8c
 md"# Spectrogram Kernel"
 
@@ -130,20 +133,22 @@ md"## Noiseless Case"
 begin
 	pyplot()
 	py"""
-	from py_lib.signals import lin_chirp
-	from py_lib.spectrogram import gauss_spectrogram
-	
-	import numpy as np
-	#
-	# Two linear chirps
-	freq = 200
-	freq_lin = 100
-	a = -65
-	N = 256
-	sig1,_ = lin_chirp(freq, N=N)
-	sig2, t = lin_chirp(freq_lin ,c=a, N=N)
-	sig = sig1+sig2
-	"""
+  import numpy as np
+  from py_lib.signals import lin_chirp
+  from py_lib.spectrogram import gauss_spectrogram
+  # Two linear chirps
+  freq = 200
+  freq_lin = 100
+  a = -65
+  N = 256
+  sig1,_ = lin_chirp(freq, N=N)
+  sig2, t = lin_chirp(freq_lin ,c=a, N=N)
+  sig = sig1+sig2
+  """
+end
+
+# ╔═╡ 091d88dc-2e9a-4a84-94bc-0cea1f76685c
+begin
 	x0 = [[py"freq/N", 0], [py"freq_lin/N", atan(py"a/N")]]
 	spec_harm_lin = py"gauss_spectrogram"(py"sig", σ)
 	p_spec = heatmap(abs.(spec_harm_lin), cbar=:none, framestyle=:none, margin=(0,:px) )
@@ -442,6 +447,7 @@ end
   ╠═╡ =#
 
 # ╔═╡ Cell order:
+# ╠═acfcb364-66b8-452e-9254-2330b0ad5a37
 # ╠═c13a86de-cb38-11ee-3890-c93e2ad0f39a
 # ╠═9e13dfd5-078d-49bb-827e-97575a6a42df
 # ╠═bb6f403c-0897-4903-be58-8cd320f83d17
@@ -452,6 +458,7 @@ end
 # ╠═35e2ddf8-08da-40c9-9ec8-f6dc1e6b8d1c
 # ╟─81bdf362-fc97-499a-bb20-addabfe586ce
 # ╠═9c7084c4-e7cb-45db-a762-15b821ed7263
+# ╠═091d88dc-2e9a-4a84-94bc-0cea1f76685c
 # ╠═d71103a1-8e24-48b5-b6cd-9e9cf7a734a3
 # ╠═436b02fb-2b8b-4e66-93ca-e344ecd90df0
 # ╠═8c884d2d-2ae6-4ddb-9864-5d76e18035fd
