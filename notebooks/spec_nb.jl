@@ -236,8 +236,8 @@ plot(p_crossing_lines)
 # ╠═35e2ddf8-08da-40c9-9ec8-f6dc1e6b8d1c
 # ╠═bb6f403c-0897-4903-be58-8cd320f83d17
 # ╟─5dcf6210-5e2d-4c74-854e-5617749d8b8c
-# ╟─9801aeb9-7067-47a8-acb7-ba9702ecbf0c
-# ╟─4ca2d7f3-c07f-44e3-bde9-5b6ac5c981de
+# ╠═9801aeb9-7067-47a8-acb7-ba9702ecbf0c
+# ╠═4ca2d7f3-c07f-44e3-bde9-5b6ac5c981de
 # ╟─648eff19-26fa-4d90-8968-daaacda95974
 # ╠═d16f9d25-3d42-4625-9e68-3727954740f3
 # ╠═81bdf362-fc97-499a-bb20-addabfe586ce
