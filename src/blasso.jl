@@ -1279,6 +1279,10 @@ function computeErrors(x0::Array{Array{Float64,1},1}, a0::Array{Float64,1}, x_es
     X[:,i] = op.phi(x_est_ord[i]);
   end
   a_LS = pinv(X) * op.y;
+  if typeof(op) == blasso.operator_spec_lchirp
+	  a_LS /= op.sigma*length(op.y)
+	a_LS = sqrt.(a_LS)
+  end
   println("a_LS=$(a_LS)")
   ampLS_error = abs.((a_LS .- a0) ./ a0); # to compare with the previous approach whose max is 255 and here a0*1/sqrt(2*pi*sigma^2)
 

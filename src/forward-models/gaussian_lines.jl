@@ -94,9 +94,16 @@ mutable struct operator_gaussLines <: operator
   correl::Function
   d1correl::Function
   d2correl::Function
+
+  radon::Bool
 end
 
-function setGaussLineOperator(kernel::gaussianLines,a0::Array{Float64,1},x0::Array{Array{Float64,1},1},w::Array{Float64,1})
+function setGaussLineOperator(
+		kernel::gaussianLines,
+		a0::Array{Float64,1},
+		x0::Array{Array{Float64,1},1},
+		w::Array{Float64,1},
+		radon::Bool=false)
 
 	"""phiVect(x)
 	Given the parameters x=(av, θv), computes the associated spectrogram line.
@@ -326,7 +333,7 @@ end
     return(d2c)
   end
 
-  operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl);
+  operator_gaussLines(typeof(kernel),kernel.dim,kernel.sigma,kernel.bounds,normObs,phiVect,d1phiVect,d11phiVect,d2phiVect,y,c,d10c,d01c,d11c,d20c,d02c,ob,d1ob,d11ob,d2ob,correl,d1correl,d2correl, radon);
 end
 
 function computePhiu(u::Array{Float64,1},op::blasso.operator_gaussLines)
@@ -352,6 +359,39 @@ function minCorrelOnGrid(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussian
   end
 
   return argmin,correl_min
+end
+
+using RadonKA
+"""
+Use the Radon transform to estimate the position of the next line.
+!!!! Careful, this method only works on square images for now !!!!
+"""
+function radonLineEstimate(Phiu::Array{Array{Float64,1},1},kernel::blasso.gaussianLines,op::blasso.operator_gaussLines,positivity::Bool=true)
+
+	# half-size of the image
+	M = kernel.Npx ÷ 2
+	# full size of the image
+	MM = 2M + 1
+	image = reshape(op.y - sum(Phiu), (MM,MM))
+	Tf = sqrt(2)M 
+	T = convert(Int64, ceil(Tf))
+	# making a border of zeros around phiu so that RadonT gets all info
+	border_img = zeros((2T,2T))
+	border_img[(2T-MM)÷2 .+ (1:MM), (2T-MM)÷2 .+ (1:MM)] = image
+
+	angles = range(-pi/2, pi/2, 200) |> collect
+	radon_t = radon(border_img, angles);
+	# Computing peak of radon
+	peak = argmax(vec(radon_t))
+	peak_real = convert.(Float64, [peak % size(radon_t)[1], (peak ÷ size(radon_t)[1])+1])
+	peak_real[2] -= 100
+	peak_real[2] *= -pi/200;
+	# peak_real[1] = abs(peak_real[1] - T)
+	peak_real[1] -= Tf
+	peak_real[1] /= cos(peak_real[2]);
+	println("TEST The estimation from the Radon transform is $peak_real")
+	
+	return peak_real, op.correl(peak_real, Phiu)
 end
 
 """
