@@ -13,7 +13,7 @@ RUN useradd -m -d ${USER_HOME_DIR} ${USER} && chown -R ${USER} ${USER_HOME_DIR}
 COPY src ${USER_HOME_DIR}/src
 RUN chown -R ${USER} ${USER_HOME_DIR}/src
 
-WORKDIR ${USER_HOME_DIR}/src
+WORKDIR ${USER_HOME_DIR}
 
 RUN mkdir -p /home/pluto/src/.julia/environments/v1.10/ &&\
     cp Manifest.toml /home/pluto/src/.julia/environments/v1.10/Manifest.toml &&\
