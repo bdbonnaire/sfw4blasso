@@ -10,10 +10,10 @@ ENV JULIA_DEPOT_PATH ${USER_HOME_DIR}/src/.julia
 
 RUN useradd -m -d ${USER_HOME_DIR} ${USER} && chown -R ${USER} ${USER_HOME_DIR}
 
-COPY src ${USER_HOME_DIR}/src
+COPY . ${USER_HOME_DIR}/src
 RUN chown -R ${USER} ${USER_HOME_DIR}/src
 
-WORKDIR ${USER_HOME_DIR}
+WORKDIR ${USER_HOME_DIR}/src
 
 RUN mkdir -p /home/pluto/src/.julia/environments/v1.10/ &&\
     cp Manifest.toml /home/pluto/src/.julia/environments/v1.10/Manifest.toml &&\
