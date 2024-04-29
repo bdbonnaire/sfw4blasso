@@ -19,7 +19,8 @@ RUN mkdir -p /home/pluto/src/.julia/environments/v1.10/ &&\
     cp Manifest.toml /home/pluto/src/.julia/environments/v1.10/Manifest.toml &&\
     cp Project.toml /home/pluto/src/.julia/environments/v1.10/Project.toml &&\
     julia --project=. -e "import Pkg; Pkg.activate(); Pkg.instantiate(); Pkg.precompile();" &&\
-    chown -R ${USER} ${USER_HOME_DIR}
+    chown -R ${USER} ${USER_HOME_DIR} &&\
+    chmod -R g+w ${USER_HOME_DIR}
 
 RUN apt-get update && apt-get install -y vim
 
