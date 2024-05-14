@@ -7,13 +7,12 @@ ENV JULIA_NUM_THREADS 100
 ENV USER_HOME_DIR /home/${USER}
 ENV JULIA_DEPOT_PATH ${USER_HOME_DIR}/src/.julia
 
-RUN useradd -m -d ${USER_HOME_DIR} ${USER} && mkdir -p ${USER_HOME_DIR}/bin &&\
+RUN useradd -m -d ${USER_HOME_DIR} ${USER} &&\
     mkdir -p ${JULIA_DEPOPT_PATH}/environments/v1.10/ 
 
 COPY . ${USER_HOME_DIR}/src
 COPY Manifest.toml ${JULIA_DEPOT_PATH}/environments/v1.10/Manifest.toml
 COPY Project.toml ${JULIA_DEPOT_PATH}/environments/v1.10/Project.toml
-COPY bin/* ${USER_HOME_DIR}/bin
 WORKDIR ${USER_HOME_DIR}/src
     
 RUN julia --project=. -e "import Pkg; Pkg.activate(); Pkg.instantiate(); Pkg.precompile();" &&\
